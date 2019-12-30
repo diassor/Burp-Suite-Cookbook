@@ -1,0 +1,401 @@
+Chapter 5. Assessing Authorization Checks
+
+In this chapter, we will cover the following recipes:
+
+    Testing for directory traversal
+    Testing for Local File Include (LFI)
+    Testing for Remote File Include (RFI)
+    Testing for privilege escalation
+    Testing for insecure direct object reference
+
+Introduction
+
+    This chapter covers the basics of authorization, including an explanation of how an application uses roles to determine
+    user functions.
+    Web penetration testing involves key assessments to determine how well the application validates functions assigned to a
+    given role, and we will learn how to use Burp to perform such tests.
+
+Software requirements
+
+    The wfuzz wordlist repository from GitHub (https://github.com/xmendez/wfuzz)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for directory traversal
+
+Directory traversal attacks are attempts to discover or forced browse to unauthorized web pages usually designed for
+administrators of the application.
+If an application does not configure the web document root properly and does not include proper authorization checks for
+each page accessed, a directory traversal vulnerability could exist.
+In particular situations, such a weakness could lead to(conducir a ) system command injection attacks or the ability of an
+attacker to perform arbitrary code execution.
+
+Getting ready
+
+    Using OWASP Mutillidae II as our target application, let's determine whether it contains any directory traversal vulnerabilities.
+
+
+How to do it...
+
+    Ensure Burp and the OWASP BWA VM are running and that Burp is configured in the Firefox browser used to view the OWASP BWA applications.
+
+    1=  From the OWASP BWA Landing page, click the link to the
+        OWASP Mutillidae II application.
+
+    2=  Open the Firefox browser on the login screen of OWASP
+        Mutillidae II.
+        From the top menu, click Login.
+
+    3=  Find the request you just performed within the Proxy |
+        HTTP history table.
+        Look for the call to the login.php page.
+        Highlight the message, move your cursor into the Raw tab
+        of the Request tab, right-click, and click on Send to Intruder:
+
+    4=  Switch over to the Intruder | Positions tab, and clear
+        all Burp-defined payload markers by clicking the Clear $ button on the right-hand side.
+
+    5=  Highlight the value currently stored in the page
+        parameter (login.php), and place a payload marker around it using the Add  §button:
+
+    6=  Continue to the Intruder | Payloads tab, and select the
+        following wordlist from the wfuzz repository:
+        admin-panels.txt.
+        The location of the wordlist from the GitHub repository follows this folder structure: wfuzz/wordlist/general/admin-panels.txt.
+
+    7=  Click the Load button within the Payload Options [Simple
+        list] section of the Intruder | Payloads, tab and a popup will display, prompting for the location of your wordlist.
+
+    8=  Browse to the location where you downloaded the wfuzz
+        repository from GitHub.
+        Continue to search through the wfuzz folder structure (wfuzz/wordlist/general/) until you reach the admin-
+        panels.txt file, and then select the file by clicking Open:
+
+    9=  Scroll to the bottom and uncheck (by default, it is
+        checked)
+        Payload Encoding the option URL-encode these characters:
+            uncheck
+
+    10=  You are now ready to begin the attack.
+         Click the Start attack button at the top right-hand corner of the Intruder | Positions page:
+
+
+The attack results table will appear.
+Allow the attacks to complete.
+There are 137 payloads in the admin-panels.txt wordlist.
+Sort on the Length column from ascending to descending order, to see which of the payloads hit a web page.
+
+    11=  Notice the payloads that have larger response lengths.
+         This looks promising!  Perhaps we have stumbled upon some administration pages that may contain
+         fingerprinting information or unauthorized access:
+
+note = lo he filtrado por mayor lengths y los primeros muestran
+        diferente informacion secreta de la pagina
+
+    12=  Select the first page in the list with the largest
+        length, administrator.php.
+        From the attack results table, look at the Response | Render tab, and notice the page displays the PHP version
+        and the system information:
+
+
+How it works...
+
+    Without even being logged in, we were able to force browse to an area of the web application that was unmapped.(sin asignar)
+
+    The term unmapped means the application itself had no direct link to this secret configuration page.
+    However, using Burp Intruder and a wordlist containing
+    commonly known administration file names, we were able to discover the page using the directory traversal attack.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for Local File Include (LFI)
+
+Web servers control access to privileged files and resources through configuration settings.
+Privileged files include files that should only be accessible by system administrators.
+    For example, the /etc/passwd file on UNIX-like platforms or the boot.ini file on Windows systems.
+
+A LFI attack is an attempt to access privileged files using directory traversal attacks.
+LFI attacks include different styles including the dot-dot-slash attack(ataque punto-punto-barra) (../),
+directory brute-forcing, directoryclimbing, or backtracking.
+
+
+Getting ready
+
+    Using OWASP Mutillidae II as our target application, let's determine whether it contains any LFI vulnerabilities.
+
+
+How to do it...
+
+Ensure Burp and OWASP BWA VM are running and that Burp is configured in the Firefox browser used to view the OWASP BWA
+applications.
+
+    1=  From the OWASP BWA Landing page, click the link to the
+        OWASP Mutillidae II application.
+
+    2=  Open the Firefox browser to the login screen of OWASP
+        Mutillidae II. From the top menu, click Login.
+
+    3=  Find the request you just performed within the Proxy |
+        HTTP history table.
+        Look for the call to the login.php page. Highlight the message, move your cursor into the Raw tab of the
+        Request tab, right-click, and Send to Intruder.
+
+    4=  Switch over to the Intruder|Positions tab, and clear all
+        Burp-defined payload markers by clicking the Clear §button on the right-hand side.
+
+    5=  Highlight the value currently stored in the page
+        parameter (login.php), and place a payload marker around it using the Add  §button on the right-hand side.
+
+    6=  Continue to the Intruder|Payloads tab.
+        Select the following wordlist from the wfuzz repository:Traversal.txt.
+        The location of the wordlist from the GitHub repository follows this folder structure: wfuzz/wordlist/injections/Traversal.txt.
+
+    7=  Click the Load button within the Payload Options [Simple
+        list] section of the Intruder | Payloads tab.
+        A popup will display, prompting for the location of your wordlist.
+
+    8=  Browse to the location where you downloaded the
+        wfuzz repository from GitHub.
+        Continue to search through wfuzz folder structure until you reach the admin-panels.txt file.
+        Select the file and click Open:
+
+    9=  Scroll to the bottom and uncheck (by default, it is
+        checked)
+            Payload Encoding the option URL-encode these characters:
+                uncheck
+
+    10=   You are now ready to begin the attack.
+          Click the Start attack button at the top-right-hand corner of the Intruder |Positions page.
+
+    11=   The attack results table will appear.
+          Allow the attacks to complete.
+          Sort on the Length column from ascending to descending order, to see which of the payloads hit a web page.
+          Notice the payloads with larger lengths; perhaps we gained(ganado) unauthorized access to the system
+          configuration files!
+
+    12=   Select the Request #6 and #11 (/etc/password) in the
+          list.
+          From the attack results table, look at the Response |
+          Render tab and notice the page displays the password file from the system!
+
+
+How it works...
+
+        Due to poorly protected file permissions and lack of application authorization checks, attackers are able to
+        read privileged local files on a system containing sensitive information.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for Remote File Inclusion (RFI)
+
+Remote File Inclusion (RFI)
+    is an attack attempting to access external URLs and remotely located files.
+    The attack is possible due to parameter manipulation and lack of server-side checks.
+    These oversights allow parameter changes to redirect the
+    user to locations that are not whitelisted or sanitized with proper data validation.
+
+
+How to do it...
+
+    Ensure Burp and OWASP BWA VM are running and that Burp is configured in the Firefox browser used to view the OWASP BWA applications.
+
+    1=  From the OWASP BWA Landing page, click the link to the
+        OWASP Mutillidae II application.
+
+    2=  Open the Firefox browser to the login screen of OWASP
+        Mutillidae II. From the top menu, click Login.
+
+    3=  Find the request you just performed within the Proxy |
+        HTTP history table. Look for the call to the login.php page:
+
+    4=  Make a note of the page parameter that determines the
+        page to load:
+
+    5=  Switch to the Proxy | Intercept tab, and press the
+        Intercept is on button.
+
+    6=  Return to the Firefox browser, and reload the login
+        page. The request is paused and contained within the Proxy | Intercept tab:
+
+    7=  Now let's manipulate the value of the page parameter
+        from login.php to a URL that is external to the
+        application.
+        Let's use the login page to the GetBoo application.
+        Your URL will be specific to your machine's IP address, so adjust accordingly. The new URL will be http://<your_IP_address>/getboo/
+
+    8=  Replace the login.php value with http://
+        <your_IP_address>/getboo/ and click the Forward button:
+
+        My example is used redirect url inside of page and
+            the render is the page insaide of mutillidae
+            and I used repeater for this
+
+                GET /mutillidae/index.php?page=https://sourceforge.net/projects/getboo/
+
+    9-  Now press the Intercept is on again to toggle the
+        intercept button to OFF (Intercept is off).
+
+    10=  Return to the Firefox browser, and notice the page
+         loaded is the GetBoo index page within the context of the Mutillidae application!
+            yes in repeater = Response => render
+                show me this
+
+
+How it works...
+
+    The page parameter does not include proper data validation
+    to ensure the values provided to it are whitelisted or
+    contained to a prescribed list of acceptable values.
+
+    By exploiting this weakness, we are able to dictate values to this parameter, which should not be allowed.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for privilege escalation
+
+Developer code in an application must include authorization checks on assigned roles to ensure an authorized user is not
+able to elevate their role to a higher privilege.
+
+Such privilege escalation attacks occur by modifying the value of the assigned role and replacing the value with another.
+In the event that the attack is successful, the user gains unauthorized access to resources or functionality normally
+restricted to administrators or more-powerful accounts.
+
+Getting ready
+
+    Using OWASP Mutillidae II as our target application, let's
+    log in as a regular user, John, and determine whether we can escalate our role to admin.
+
+
+How to do it...
+
+    Ensure Burp and OWASP BWA VM are running and that Burp is configured in the Firefox browser used to view the OWASP BWA applications.
+
+    1=  From the OWASP BWA Landing page, click the link to the
+        OWASP Mutillidae II application.
+
+    2=  Open the Firefox browser to the login screen of OWASP
+        Mutillidae II. From the top menu, click Login.
+
+    3=  At the login screen, log in with these
+        credentials—username: john and password:monkey.
+
+    4=  Switch to Burp's Proxy | HTTP history tab. Find the POST
+        and subsequent GET requests you just made by logging in as john:
+
+    5=  Look at the GET request from the listing; notice the
+        cookie name/value pairs shown on the Cookie: line
+
+note =  The name/value pairs of most interest include
+        username=john and uid=3.
+        What if we attempt to manipulate these values to a different role?
+
+    6=  Let's attempt to manipulate the parameters username and
+        the uid stored in the cookie to a different role.
+        We will use Burp's Proxy | Intercept to help us perform this attack.
+
+    7=  Switch to the Proxy | Intercept tab, and press the
+        Intercept is on button.
+        Return to the Firefox browser and reload the login page.
+
+    8=  The request is paused within the Proxy | Intercept tab.
+        While it is paused, change the value assigned to the username from john to admin.
+        Also, change the value assigned to the uid from 3 to1:
+
+            Cookie: showhints=1; username=john; uid=3; PHPSESSID=66e341c9a9fb8ab3a240c000b4208132
+
+            Cookie: showhints=1; username=admin; uid=1; PHPSESSID=66e341c9a9fb8ab3a240c000b4208132
+
+    9=  Click the Forward button, and press the Intercept is on
+        again to toggle the intercept button to OFF (Intercept is off)
+            Logged In Admin: admin (g0t r00t?)
+            this is good we used las authentication of john for
+            admin
+
+How it works...
+
+    There are several application issues associated with the privilege escalation attack shown in this recipe.
+
+    Any actions related to account provisioning (that is, role assignments) should only be allowed by administrators.
+
+    Without proper checks in place, users can attempt to escalate their provisioned roles.
+
+    Another issue exemplified in this recipe is the sequential user ID number (for example, uid=3).
+    Since this number is easily guessable and because most applications start with administrator accounts, changing the
+    digit from 3 to 1 seemed a probable guess for association with the admin account.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for Insecure Direct Object Reference (IDOR)
+
+Allowing unauthorized direct access to files or resources on a system based on user-supplied input is known as Insecure Direct
+Object Reference (IDOR).
+This vulnerability allows the bypassing of authorization checks placed on such files or resources.
+IDOR is a result of unchecked user supplied input to retrieve an object without performing authorization checks in the
+application code.
+
+Getting ready
+
+    Using OWASP Mutillidae II as our target application, let's manipulate the value of the phpfile parameter to determine
+    whether we can make a call to a direct object reference on the system, such as /etc/passwd file.
+
+
+How to do it...
+
+    1=  From the Mutillidae menu, select OWASP 2017 | A5 –
+        Broken Access Control | Insecure Direct Object References | Source Viewer:
+
+    2=  From the Source Viewer page, using the default file
+        selected in the drop-down box (upload-file.php), click the View File button to see the contents of the file
+        displayed below the button:
+
+    3=  Switch to Burp's Proxy | HTTP history tab.
+        Find the POST request you just made while viewing the upload-file.php file.
+        Note the phpfile parameter with the value of the file to display.
+        What would happen if we change the value of this parameter to something else?
+
+    4=  Let's perform an IDOR attack by manipulating the value
+        provided to the phpfile parameter to reference a file on the system instead.
+        For example, let's try changing the upload-file.php value to ../../../../etc/passwd via Burp's Proxy | Intercept functionality.
+
+    5=  To perform this attack, follow these steps.
+
+            1=  Switch to the Proxy |Intercept tab, and press
+                the Intercept is on button.
+
+            2=  Return to the Firefox browser and reload the
+                login page.
+                The request is paused and contained within the Proxy | Intercept tab.
+
+            3=  As the request is paused, change the value
+                assigned to the phpfile parameter to the value ../../../../etc/passwd instead:
+
+            4=  Click the Forward button.
+                Now press the Intercept is on button again to toggle the intercept button to OFF (Intercept is off).
+
+            5=  Return to the Firefox browser.
+                Notice we can now see the contents of the /etc/passwd file!
+
+        File: ../../../../etc/passwd
+
+        this is the answer and more info
+
+            root:x:0:0:root:/root:/bin/bash
+            daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+            bin:x:2:2:bin:/bin:/usr/sbin/nologin
+            sys:x:3:3:sys:/dev:/usr/sbin/nologin
+
+
+How it works...
+
+    Due to lack of proper authorization checks on the phpfile
+    parameter within the application code, we are able to view a privileged file on the system.
+    Developers and system administrators provide access controls
+    and checks prior to the revealing of sensitive files and resources.
+    When these access controls are missing, IDOR vulnerabilities may be present.
+    
