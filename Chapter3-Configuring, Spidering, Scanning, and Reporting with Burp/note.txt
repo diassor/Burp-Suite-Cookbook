@@ -1,0 +1,385 @@
+Chapter 3. Configuring, Spidering, Scanning, and Reporting with Burp
+
+In this chapter, we will cover the following recipes:
+
+    Establishing trust over HTTPS
+    Setting project options
+    Setting user options
+    Spidering with Spider
+    Scanning with Scanner
+    Reporting issues
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Introduction
+
+    This chapter helps testers to calibrate Burp settings so they're less abusive toward the target application.
+    Tweaks within Spider and Scanner options can assist with this issue.
+    Likewise(igualmente), penetration testers can find themselves in interesting network situations when trying to reach a
+    target.
+    Thus(asi), several tips are included for testing sites running over HTTPS, or sites only accessible through a SOCKS
+    Proxy or a port forward.
+    Such settings are available within project and user options.
+    Finally, Burp provides the functionality to generate reports for issues.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Establishing trust over HTTPS
+
+Since most websites implement Hypertext Transport Protocol Secure (HTTPS), it is beneficial to know how to enable Burp to
+communicate with such sites.
+HTTPS is an encrypted tunnel running over Hypertext Transport Protocol (HTTP).
+
+The purpose of HTTPS is to encrypt traffic between the client browser and the web application to prevent eavesdropping.
+However, as testers, we wish to allow Burp to eavesdrop, since that is the point of using an intercepting proxy.
+Burp provides a root, Certificate Authority (CA) signed certificate.
+    This certificate can be used to establish trust between Burp and the target web application.
+
+By default, Burp's Proxy can generate a per-target CA certificate when establishing an encrypted handshake with a target running
+over HTTPS.
+That takes care of the Burp-to-web-application portion of the tunnel.
+We also need to address the Browser-to-Burp portion.
+
+In order to create a complete HTTPS tunnel connection between the client browser, Burp, and the target application, the client will
+need to trust the PortSwigger certificate as a trusted authority within the browser.
+
+
+Getting ready
+
+    In situations requiring penetration testing with a website running over HTTPS, a tester must import the PortSwigger CA
+    certificate as a trusted authority within their browser.
+
+
+How to do it...
+
+Ensure Burp is started and running and then execute the following steps:
+
+    Open the Firefox browser to the  http://burp URL. You must
+    type the URL exactly as shown to reach this page.
+    You should see the following screen in your browser.
+    Note the link on the right-hand side labeled CA Certificate. Click the link to download the PortSwigger CA certificate:
+
+    You will be presented with a dialog box prompting you to download the PortSwigger CA certificate.
+        The file is labeled cacert.der.
+        Download the file to a location on your hard drive.
+
+    In Firefox, open the Firefox menu. Click on Options.
+
+    Click Privacy & Security on the left-hand side, scroll down
+    to Certificates section. Click the View Certificates… button:
+
+    Select the Authorities tab. Click Import, select the Burp CA certificate file that you previously saved, and click Open:
+
+    In the dialog box that pops up, check the Trust this CA to identify websites box, and click OK.
+        Click OK on the Certificate Manager dialog as well:
+
+
+    Close all dialog boxes and restart Firefox. If installation was successful, you should now be able to visit any HTTPS URL in your browser while proxying the traffic through Burp without any security warnings.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Setting Project options
+
+    Project options allow a tester to save or set configurations specific to a project or scoped target.
+
+    There are multiple subtabs available under the Project options tab, which include Connections, HTTP, SSL, Sessions, and Misc.
+    Many of these options are required for penetration testers when assessing specific targets, which is why they are covered here.
+
+How to do it...
+
+    In this book, we will not be using many of these features but it is still important to know of their existence and understand their purpose:
+
+Project options tab
+
+    The Connections tab
+
+    Under the Connections tab, a tester has the following options:
+
+    Platform Authentication:
+        This provides an override button in the event the tester wants the Project options related to
+        the type of authentication used against the target
+        application to supersede any authentication settings within the user options.
+
+
+After clicking the checkbox to override the user's options, the tester is presented with a table enabling authentication options
+(for example, Basic, NTLMv2, NTLMv1, and Digest) specific to the
+target application.
+    The destination host is commonly set to wildcard * should a tester find the need to ever use this option:
+
+    check override user options and
+    check do Platforma authentication
+
+
+    Upstream proxy servers:
+        It provides an override button in the event the tester wants the Project options related to upstream proxy
+        servers used against the target application to supersede any proxy settings contained within the user options.
+
+
+After clicking the checkbox to override the user's options, the tester is presented with a table enabling upstream proxy options
+specific to this project.
+Clicking the Add button displays a pop-up box called Add upstream proxy rule.
+This rule is specific to the target application's environment.
+This feature is very helpful if the target application's environment is fronted with a web proxy requiring a different
+set of credentials than the application login:
+
+
+
+    SOCKS Proxy:
+        It provides an override button in the event the tester wishes for Project options related to the SOCKS Proxy
+        configuration used against the target application to supersede any SOCKS Proxy settings within the user options.
+
+After clicking the checkbox to override user options, the tester is presented with a form to configure a SOCKS Proxy specific to
+this project.
+In some circumstances, web applications must be accessed over an additional protocol that uses socket connections and authentication, commonly referred to as SOCKS:
+
+
+    Timeouts:
+        It allows for timeout settings for different network scenarios, such as failing to resolve a domain name:
+
+
+    Hostname Resolution:
+        It allows entries similar to a host file on a local machine to override the Domain Name System (DNS)
+        resolution:
+
+
+    Out-of-Scope Requests:
+        It provides rules to Burp regarding Out-of-Scope Requests.
+        Usually, the default setting of Use suite scope [defined in Target tab] is most commonly used:
+
+
+
+The HTTP tab
+
+Under the HTTP tab, a tester has the following options:
+
+    Redirections:
+        It provides rules for Burp to follow when redirections are configured.
+        Most commonly, the default settings are used here:
+            (default)
+
+    Streaming Responses:
+        It provides configurations related to responses that
+        stream indefinitely.
+        Mostly(principalmente), the default settings are used here:
+
+    Status 100 Responses:
+        It provides a setting for Burp to handle HTTP status code 100 responses.
+        Most commonly, the default settings are used here:
+
+
+The SSL tab
+
+Under the SSL tab, a tester has the following options:
+
+    SSL Negotiations:
+        When Burp communicates with a target application over
+        SSL, this option provides the ability to use preconfigured SSL ciphers or to specify different ones:
+
+If a tester wishes to customize the ciphers, they will click the Use custom protocols and ciphers radio button.
+A table appears allowing selection of protocols and ciphers that Burp can use in the communication with the target application:
+
+
+    Client SSL Certificates:
+        It provides an override button in the event the tester
+        must use a client-side certificate against the target
+        application.
+        This option will supersede any client-side certificate configured within the user options.
+
+
+After clicking the checkbox to override user options, the tester is presented with a table to configure a client-side certificate
+specific to this project.
+You must have the private key to your client-side certificate in order to successfully import it into Burp:
+
+
+    Server SSL Certificates:
+        It provides a listing of server-side certificates.
+        A tester can double-click any of these line items to view the details of each certificate:
+
+
+The Sessions tab
+
+This book will cover recipes on all functionality contained within the Sessions tab in Chapter 10, Working with Burp Macros
+and Extensions.
+A review of each of these sections within the Sessions tab is provided here for completeness.
+
+Under the Sessions tab, a tester has the following options:
+
+    Session Handling Rules:
+        It provides the ability to configure customized session-handling rules while assessing a web application:
+
+    Cookie Jar:
+        It provides a listing of cookies, domains, paths, and name/value pairs captured by Burp Proxy (by default):
+
+    Macros:
+        It provides the ability of a tester to script tasks previously performed in order to automate activities while interacting with the target application:
+
+
+
+The Misc tab
+
+Under the Misc tab, a tester has the following options:
+
+    Scheduled Tasks:
+        It provides the ability to schedule an activity at specific times:
+
+        When the Add button is clicked, a pop-up reveals the types of activities available for scheduling(planificacion):
+
+    Burp Collaborator Server:
+        It provides the ability to use a service external to
+        the target application for the purposes of
+        discovering vulnerabilities in the target application.
+
+        This book will cover recipes related to Burp Collaborator in Chapter 11, Implementing Advanced Topic Attacks.
+        A review of this section is provided here for completeness:
+
+    Logging:
+        It provides the ability to log all requests and responses or filter the logging based on a particular
+        tool.
+        If selected, the user is prompted for a file name and location to save the log file on the local machine:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Setting user options
+
+User options allow a tester to save or set configurations specific to how they want Burp to be configured upon startup.
+There are multiple sub-tabs available under the user options tab, which include Connections, SSL, Display, and Misc.
+For recipes in this book, we will not be using any user options.
+However, the information is reviewed here for completeness.
+
+
+How to do it...
+
+Using Burp user options, let's configure your Burp UI in a manner best suited to your penetration-testing needs.
+Each of the items under the Connections tab is already covered
+in the Project options section of this chapter, hence, we will directly start with the SSL tab.
+
+The SSL tab
+
+Under the SSL tab, a tester has the following options:
+
+    Java SSL Options:
+        It provides the ability the configure Java security libraries used by Burp for SSL connections.
+        The default values are most commonly used:
+
+    Client SSL Certificate:
+        This section is already covered in the Project options section of this chapter.
+
+The Display tab
+
+    User Interface:
+        It provides the ability to modify the default font and size of the Burp UI itself:
+
+    HTTP Message Display:
+        It provides the ability to modify the default font and
+        size used for all HTTP messages shown within the message editor:
+
+    Character Sets:
+        It provides the ability to change the character sets
+        determined by Burp to use a specific set or to display as raw bytes:
+
+    HTML Rendering:
+        It controls how HTML pages will display from the Render tab available on an HTTP response:
+
+
+The Misc tab
+
+    Hotkeys:
+        It lets a user configure hotkeys for commonly-executed commands:
+
+    Automatic Project Backup [disk projects only]:
+        It provides the ability to determine how often backup copies of project files are made.
+        By default, when using Burp Professional, backups are set to occur every 30 minutes:
+
+    Temporary Files Location:
+        It provides the ability to change the location where temporary files are stored while running Burp:
+            I created a folder in this path:
+                Downloads/dir-kali-sda/temp for test burpsuite#
+
+    Proxy Interception:
+        It provides the ability to always enable or always disable proxy intercept upon initially starting Burp:
+
+    Proxy History Logging:
+        It provides the ability to customize prompting of out-of-scope items when the target scope changes:
+
+    Performance Feedback:
+        It provides anonymous data to PortSwigger regarding Burp performance:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Burp 2.0
+
+Burp 2.0 has moved to a task-based model.
+
+One way to initiate a scan is by clicking the "New scan" on the Dashboard tab.
+This opens a wizard that lets you configure the details of the scan:
+    Each scan has its own configuration settings. For example, for crawling tasks you can configure crawl optimization, crawl limits, options for login functions and error handling:
+
+https://portswigger.net/burp/documentation/desktop/scanning
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reporting issues
+
+In Burp Professional, as scanner discovers a vulnerability, it will be added to a list of issues found on the Target tab, in
+the right-hand side of the UI.
+Issues are color-coded to indicate the severity and confidence level.
+An issue with a red exclamation point means it is a high severity and the confidence level is certain.
+For example,
+    the SQL Injection issue shown here contains both of these attributes.
+
+Items with a lower severity or confidence level will be low,
+informational, and yellow, gray, or black in color.
+
+These items require manual penetration testing to validate whether the vulnerability is present.
+For example,
+    Input returned in response is a potential vulnerability identified by scanner and shown in the following screenshot.
+    This could be an attack vector for cross-site scripting (XSS) or it could be a false positive.
+    It is up to the penetration tester and their level of experience to validate such an issue:
+
+
+
+How to do it...
+
+    For this recipe, select Cookie without HttpOnly flag set under the Issues heading:
+
+    Look at the Response tab of that message to validate the finding. We can clearly see the PHPSESSID cookie does not
+        have the HttpOnly flag set.
+        Therefore (por lo tanto), we can change the severity from Low to High and the confidence level from Firm to Certain:
+
+    Right-click the issue and change the severity to High by selecting Set severity | High:
+
+    Right-click the issue and change the severity to Certain by selecting Set confidence | Certain:
+
+    For this recipe, select the issues with the highest confidence and severity levels to be included in the report. After selecting (highlighting + Shift key) the items shown here, right-click and select Report selected issues:
+
+Upon clicking Report selected issues, a pop-up box appears prompting us for the format of the report. This pop-up is the
+Burp Scanner reporting wizard.
+
+
+    For this recipe, allow the default setting of HTML. Click Next.
+
+    This screen prompts for the types of details to be included in the report.
+        For this recipe, allow the default settings. ClickNext.
+
+    This screen prompts for how messages should be displayed within the report.
+        For this recipe, allow the default settings. ClickNext.
+
+    This screen prompts for which types of issues should be included in the report.
+        For this recipe, allow the default settings. Click Next.
+
+    This screen prompts for the location of where to save the report.
+        For this recipe, click Select file…, select a location,
+        and provide a file name followed by the .html extension; allow all other default settings. Click Next:
+
+    This screen reflects the completion of the report generation. Click Close and browse to the saved location of the file.
+
+    Double-click the file name to load the report into a browser:
+
+    Congratulations! You've created your first Burp report!
+        my path (/root/Downloads/dir-kali-sda/temp for test burpsuite/report issues)

@@ -1,0 +1,278 @@
+Chapter 2. Getting to Know the Burp Suite of Tools
+
+
+Introduction
+
+This chapter provides overviews of the most commonly used tools within Burp Suite.
+
+The chapter begins by establishing the Target scope within the Target Site Map.
+This is followed by an introduction to the Message Editor.
+Then, there will be some hands-on recipes using OWASP Mutillidae II to get acquainted with Proxy, Repeater, Decoder, and Intruder.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Setting the Target Site Map
+
+Looking more closely at the Target tab, you will notice there are two subtabs available:
+Site map and Scope.
+    From the initial proxy setup between your browser, Burp, and the web server, you should now have some URLs, folders, and files shown in the Target | Site map tab.
+    You may find the amount of information overwhelming, but setting the scope for our project will help to focus our attention better.
+
+    How to do it...
+
+    Execute the following steps to set the Target Site Map:
+
+        1 = Search for the folder mutillidae and right-click on Add to scope.
+        Notice the brief highlighting of the Target | Scope subtab, as follows:
+
+        2 = Upon adding the folder mutillidae to your scope, you may be presented with a Proxy history logging dialog box,
+        as follows.
+        You may choose to avoid collecting messages out of your cope by clicking Yes.
+        Or you may choose to continue to have the Proxy HTTP History table collect any messages passing through Burp, even if those messages fall outside the scope you've identified.
+            For our purposes, we will select Yes:
+
+How it works...
+
+    The Message Editor displays detailed information any HTTP message flowing through the Proxy listener.
+    After setting up Proxy to capture HTTP traffic, as seen in your Target | Site map and Burp Proxy | HTTP history tab, you
+    are able to select any single message to reveal the Message Editor.
+    Each editor contains the request and response sides of the message, so long as the message is properly proxied through Burp.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Understanding the Message Editor
+
+On almost every tool and tab within Burp Suite that display an HTTP message,
+you will see an editor identifying the request and response.
+This is commonly referred to as the Message Editor.
+The Message Editor allows viewing and editing HTTP requests and responses with specialties.
+    Raw
+    Headers
+    Hex
+    HTML (sometimes)
+    Render (sometimes)
+
+The Raw tab gives you the message in its raw HTTP form.
+
+The Headers tab displays HTTP header parameters in tabular format.
+
+The parameters are editable, and columns can be added, removed, or modified in the table within tools such as Proxy and Repeater.
+
+    For requests containing parameters or cookies, the Params tab is present.
+    Parameters are editable, and columns can be added, removed, or modified in the table within tools such as Proxy and Repeater.
+
+The Hex tab, which presents the message in hexadecimal format; it is, in essence, a hex editor.
+You are permitted to edit individual bytes within tools such as
+Proxy and Repeater, but those values must be given in two-digit
+hexadecimal form, from 00 through FF.
+
+    2 =    When viewing a request, note that the subtabs available include Raw, Headers, and Hex, at a minimum.
+    However, in the case of a request containing parameters or cookies, the Params subtab is also available:
+
+    3 =    The other side of the message is the Response tab, containing the Raw, Headers, Hex subtabs, and sometimes HTML
+    and Render.
+    These are the various formats provided for the HTTP response to the request.
+    If the content is HTML, then the tab will appear.
+    Likewise, the Render tab enables HTML display as it would be presented in a browser but without any JavaScript executed:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Repeating with Repeater
+
+Repeater allows for slight changes or tweaks to the request, and it is displayed in the left-hand window.
+A Go button allows the request to be reissued, and the response is displayed in the right-hand window.
+
+Details related to your HTTP request include standard Message
+Editor details such as Raw, Params (for requests with parameters
+or cookies), Headers, and Hex.
+
+Details related to the HTTP Response include standard Message
+Editor details including Raw, Headers, Hex, and, sometimes, HTML and Render.
+
+At the bottom of each panel is a search-text box, allowing the tester to quickly find a value present in a message.
+
+    How to do it...
+        From the Target | Site map or from Proxy | HTTP history tabs (shown in the following screenshot), right-click a message and select Send to Repeater:
+
+        Switch over to the Repeater tab. Note the HTTP Request is ready for the tester to tweak parameters, and then send the request to the application via the Go button.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Decoding with Decoder
+
+Burp Decoder is a tool that allows the tester to convert raw data into encoded data or to take encoded data and convert
+it back to plain text.
+    Decoder supports several formats including URL encoding, HTML encoding, Base64 encoding, binary code, hashed data, and others. Decoder also includes a built-in hex editor.
+
+How to do it...
+
+    Let's try to decode the value of the session token PHPSESSID found in the OWASP Mutillidae II application.
+    When a user initially browses to the URL (http://<Your_VM_Assigned_IP_Address>/mutillidae/), that user will
+    be assigned a PHPSESSID cookie.
+    The PHPSESSID value appears to be encrypted and then wrapped in base 64 encoding.
+    Using Decoder, we can unwrap the value.
+
+        Browse to the http://<Your_VM_Assigned_IP_Address>/mutillidae/ application.
+
+        Find the HTTP request you just generated from your browse within the Proxy | HTTP history tab (shown in the next screenshot).
+        Highlight the PHPSESSID value, not the parameter name, right-click, and select Send to Decoder:
+
+        example my own page mutillidae
+
+    <@d_base64_1>42b18ac2905a3a2d13d560e0393dbdf1<@/d_base64_1>
+            ãfõñ§6÷NZÝ­×wyëG´ßÝÝm×õ
+
+In this example, we cannot proceed any further.
+We can confirm the value was, indeed, wrapped in Base 64.
+However, the value that is unwrapped is encrypted.
+The purpose of this recipe is to show you how you can use Decoder to manipulate encoded values.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Intruding with Intruder
+
+The Burp Intruder allows a tester to brute-force or fuzz specific portions of an HTTP message, using customized payloads.
+
+To properly set up customized attacks in Intruder, a tester will
+need to use the settings available in the four subtabs of Intruder:
+
+How to do it...
+
+    Browse to the login screen of Mutillidae and attempt to log into the application.
+        For example, type a username of admin and a password of adminpass.
+    Find the login attempt in the Proxy | HTTP history tab.
+    Your request number (that is, the # sign on the left-hand side) will be different from the one shown next.
+    Select the message that captured your attempt to log in.
+
+    As the login attempt message is highlighted in the HTTP history table, right-click the Request tab, and select Send to Intruder:
+
+
+Target
+
+    The Intruder Target tab defines your targeted web application.
+    These settings are pre-populated for you by Burp:
+
+Positions
+
+    The Positions tab identifies where the payload markers are to be defined within the Payload | Positions section.
+    For our purposes,
+        click the Clear § (that is, payload markers) from the right-hand side menu.
+    Manually select the password field by highlighting it with your cursor.
+    Now click the Add § button on the right-hand side menu. You should have the payload markers wrapping around the password
+    field as follows:
+
+
+Payloads tab
+
+    After the Positions tab is the Payloads tab.
+    The Payloads tab identifies wordlist values or numbers you wish to be inserted into the positions you identified on the
+    previous tab.
+    There are several sections within the Payloads tab, including Payload Sets, Payload Options, Payload Processing, and Payload Encoding.
+
+    Payload Sets
+
+        Payload Sets allows for the setting of the number of payloads as well as the type.
+        For our purposes, we will use the default settings for Sniper, allowing us to use one payload with a Payload type of Simple list:
+
+    Payload Options
+
+        In the Payload Options section, a tester can configure a custom payload or load a preconfigured one from a file.
+
+        For our purposes, we will add one value to our payload. In the text box, type admin, and then click the Add button to create our custom payload:
+
+    Payload Processing
+
+        Payload Processing is useful when configuring special rules to be used while Intruder substitutes payloads
+        into payload marker positions.
+        For this recipe, we do not need any special payload-processing rules:
+
+    Payload Encoding
+
+        Payload Encoding is applied to the payload value prior to sending the request to the web server.
+        Many web servers may block offensive payloads (for example, <script> tags), so the encoding feature is a means to circumvent any blacklist blocking.
+
+    For the purpose of this recipe, leave the default box checked:
+
+
+Options tab
+
+    Finally, the Intruder | Options tab provides attack table customizations, particularly related to responses captured
+    such as specific error messages.
+    There are several sections within the Intruder | Options tab, including Request Headers, Request Engine, Attack Results, Grep-Match, Grep-Extract, Grep - Payloads, and Redirections:
+
+    Request Headers
+
+        Request Headers offers configurations specific to header
+        parameters while Intruder is running attacks.
+        For the purpose of this recipe, leave the default boxes checked:
+
+
+    Request Engine
+
+        Request Engine should be modified if a tester wishes to create less noise on the network while running Intruder.
+            For example, a tester can throttle attack requests using variable timings so they seem more random to network devices.
+            This is also the location for lowering the number of threads Intruder will run against the target application.
+
+        For purpose of this recipe, leave the default setting as-is: (default )
+
+
+    Attack Results
+
+        After starting the attack, Intruder creates an attack table.
+        The Attack Results section offers some settings around what is captured within that table.
+
+        For the purpose of this recipe, leave the default settings as-is: (default)
+
+    Grep - Match
+
+        Grep - Match is a highly useful feature that, when enabled, creates additional columns in the attack table
+        results to quickly identify errors, exceptions, or even a custom string within the response.
+
+        For the purpose of this recipe, leave the default settings as-is: (default)
+
+
+    Grep - Extract
+
+        Grep - Extract, when enabled, is another option for adding a column in the attack table whose label is
+        specific to a string found in the response.
+        This option differs from Grep - Match, since Grep - Extract values are taken from an actual  HTTP response,
+        as opposed to an arbitrary string.
+
+        For the purpose of this recipe, leave the default settings as-is: (default)
+
+
+    Grep - Payloads
+
+        Grep - Payloads provides a tester the ability to add columns in the attack table in which responses contain reflections of payloads.
+
+        For the purpose of this recipe, leave the default settings as-is: (default)
+
+
+    Redirections
+
+        Redirections instructs Intruder to never, conditionally, or always follow redirections.
+        This feature is very useful, particularly when brute-forcing logins, since a 302 redirect is generally an indication of entry.
+
+        For the purpose of this recipe, leave the default settings as-is: (default)
+
+
+
+Start attack button
+
+    Finally, we are ready to start Intruder. On either the Payloads or the Options tabs, click the Start attack button to begin:
+
+    When the attack has started, an attack results table will appear.
+    This allows the tester to review all requests using the payloads within the payload marker positions.
+    It also allows us to review of all responses and columns showing Status, Error, Timeout, Length, and Comment.
+
+    For the purpose of this recipe, we note that the payload of admin in the password parameter produced a status code of
+    302, which is a redirect.
+    This means we logged into the Mutillidae application successfully:
+
+        Looking at Response | Render within the attack table allows us to see how the web application responded to our payload.
+        As you can see, we are successfully logged in as an admin:
+            (Logged In Admin: admin (g0t r00t?))

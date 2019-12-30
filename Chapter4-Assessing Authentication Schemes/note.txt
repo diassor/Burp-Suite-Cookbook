@@ -1,0 +1,432 @@
+Chapter 4. Assessing Authentication Schemes
+
+In this chapter, we will cover the following recipes:
+
+    Testing for account enumeration and guessable accounts
+    Testing for weak lock-out mechanisms
+    Testing for bypassing authentication schemes
+    Testing for browser cache weaknesses
+    Testing the account provisioning process via REST API
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Introduction
+
+This chapter covers the basic penetration testing of authentication schemes.
+Authentication is the act of verifying whether a person or object claim is true.
+Web penetration testers must make key assessments to determine the strength of a target application's authentication scheme.
+
+Such tests include launching attacks, to determine the presence of account enumeration and guessable accounts, the presence of
+weak lock-out mechanisms, whether the application scheme can be bypassed, whether the application contains browser-caching
+weaknesses, and whether accounts can be provisioned without
+authentication via a REST API call.
+    You will learn how to use Burp to perform such tests.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for account enumeration and guessable accounts
+
+By interacting with an authentication mechanism, a tester may find it possible to collect a set of valid usernames.
+
+Once the valid accounts are identified, it may be possible to brute-force passwords.
+This recipe explains how Burp Intruder can be used to collect a list of valid usernames.
+
+I use mutillidae
+
+Click the Log In button, and at the login screen, attempt to log in with an account
+    username of admin
+    password of aaaaa:
+
+Note the message returned is The password is invalid.
+From this information, we know admin is a valid account.
+Let's use Burp Intruder to find more accounts.
+
+In Burp's Proxy | HTTP history tab, find the failed login attempt message.
+View the Response | Raw tab to find the same overly verbose error message, The password is invalid:
+
+Flip back to the Request | Raw tab and right-click to send this request to Intruder:
+
+Go to Burp's Intruder tab and leave the Intruder | Target tab settings as it is.
+    Continue to the Intruder | Positions tab.
+Notice how Burp places payload markers around each parameter value found.
+However, we only need a payload marker around the password value.
+
+    Click the Clear § button to remove the payload markers placed by Burp:
+
+Then, highlight the name value of aaaa with your cursor and click the Add § button:
+
+Continue to the Intruder | Payloads tab.
+Many testers use word lists to enumerate commonly used passwords within the payload marker placeholder.
+For this recipe, we will type in some common usernames, to create a custom payload list.
+
+In the Payload Options [Simple list] section, type the string passwords and click the Add button:
+
+Add a few more strings such as useradmin, adminpass, demopass, and, finally, password to the payload-listing box:
+
+    Go to the Intruder | Options tab and scroll down to the Grep – Match section.
+
+    Click the checkbox Flag result items with responses matching these expressions.
+
+    Click the Clear button to remove the items currently in the list:
+        Click Yes to confirm you wish to clear the list.
+
+    Type the string The password is invalid within the textbox and click the Add button.
+        Your Grep – Match section should look as shown in the following screenshot:
+
+    Click the Start attack button located at the top of the Options page.
+    A pop-up dialog box appears displaying the payloads defined, as well as the new column we added under the Grep – Match
+    section.
+    This pop-up window is the attack results table.
+
+    The attack results table shows each request with the given payload resulted in a status code of 200 and that two of the
+    payloads, john and tom, did not produce the message The
+    password is invalid within the responses.
+    Instead, those two payloads returned a message of The passwords does not exist:
+
+        Body	username	admin
+        Body	password	adminpass
+            ready
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for weak lock-out mechanisms
+
+Account lockout mechanisms should be present within an application to mitigate brute-force login attacks.
+Typically, applications set a threshold between three to five attempts.
+Many applications lock for a period of time before a re-attempt is allowed.
+
+Penetration testers must test all aspects of login protections, including challenge questions and response, if present.
+
+Getting ready
+
+Determine whether an application contains proper lock-out mechanisms in place.
+If they are not present, attempt to brute-force credentials
+against the login page to achieve unauthorized access to the
+application.
+Using the OWASP Mutillidae II application, attempt to log in five times with a valid username but an invalid password.
+
+
+
+How to do it...
+
+Ensure Burp and the OWASP BWA VM are running and that Burp is configured in the Firefox browser used to view the OWASP BWA applications.
+
+    From the OWASP BWA Landing page, click the link to the OWASP Mutillidae II application.
+
+    Open the Firefox browser to the login screen of OWASP Mutillidae II.
+        From the top menu, click Login.
+    At the login screen, attempt to login five times with username admin and the wrong password of aaaaaa.
+    Notice the application does not react any differently during the five attempts.
+    The application does not change the error message shown, and the admin account is not locked out.
+    This means the login is probably susceptible to brute-force password-guessing attacks:
+
+    Go to the Proxy | HTTP history tab, and look for the failed login attempts.
+        Right-click one of the five requests and send it to Intruder:
+
+    Go to Burp's Intruder tab, and leave the Intruder | Target tab settings as it is.
+    Continue to the Intruder | Positions tab and notice how Burp places payload markers around each parameter value found.
+    However, we only need a payload marker around the password's value.
+    Click the Clear § button to remove the payload markers placed by Burp:
+
+    Then, highlight the password value of aaaaaa and click the Add § button.
+
+    Continue to the Intruder | Payloads tab.
+        Many testers use word lists to brute-force commonly used passwords within the payload marker placeholder.
+        For this recipe, we will type in some common passwords to create our own unique list of payloads.
+
+    In the Payload Options [Simple list] section, type the string admin123 and click the Add button:
+
+    Add a few more strings, such as adminpass, welcome1, and, finally, admin to the payload-listing box:
+
+    Go to the Intruder | Options tab and scroll down to the
+    Grep – Extract section:
+
+
+    Click the checkbox Extract the following items from responses and then click the Add button.
+    A pop-up box appears, displaying the response of the unsuccessful login attempt you made with the admin/aaaaaa request.
+
+    In the search box at the bottom, search for the words Not Logged In.
+    After finding the match, you must highlight the words Not Logged In, to assign the grep match correctly:
+
+    If you do not highlight the words properly, after you click OK, you will see [INVALID] inside the Grep – Extract box.
+        If this happens, remove the entry by clicking the Remove button and try again by clicking the Add button, perform the search, and highlight the words.
+
+    If you highlight the words properly, you should see the following in the Grep – Extract box:
+        From [ ReflectedXSSExecutionPoint="1" class="version-header" style="margin-left: 20px;">] to [</span>]
+
+
+    Now, click the Start attack button at the top right-hand side of the Options page.
+
+    A pop-up attack results table appears, displaying the request with the payloads you defined placed into the payload marker positions.
+        Notice the attack table produced shows an extra column entitled ReflectedXSSExecution. This column is a result of the Grep – Extract Option set previously.
+
+    From this attack table, viewing the additional column, a tester can easily identify which request number successfully
+    brute-forced the login screen.
+        In this case, Request 5, using credentials of the username admin and the password adminpass logged us into the application:
+
+    Select Request 5 within the attack table, and view the Response | Render tab.
+        You should see the message Logged In Admin:
+            admin (g0t r00t?) on the top right-hand side:
+
+
+    Close the attack table by clicking the X in the top right-hand corner.
+
+    You successfully brute-forced the password of a valid account on the system, due to the application having a weak
+    lock-out mechanism.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for bypassing authentication schemes
+
+Applications may contain flaws, allowing unauthorized access by means of bypassing the authentication measures in place.
+    Bypassing techniques include a direct page request (that is, forced browsing), parameter modification, session ID prediction, and SQL Injection.
+
+For the purposes of this recipe, we will use parameter modification.
+
+Getting ready
+
+Add and edit parameters in an unauthenticated request to match a previously captured authenticated request.
+Replay the modified, unauthenticated request to gain access to the application through bypassing the login mechanism.
+
+
+How to do it...
+
+    Open the Firefox browser to the home page of OWASP Mutillidae II, using the Home button from the top menu, on
+    the left-hand side.
+    Make sure you are not logged into the application.
+    If you are logged in, select Logout from the menu:
+
+    2 =     In Burp, go to the Proxy | HTTP history tab and
+        select the request you just made, browsing to the home page as unauthenticated.
+        Right-click, and then select Send to Repeater:
+
+    3 =     Using this same request and location, right-click
+        again, and then select Send to Comparer(request):
+
+    4=      Return to the home page of your browser and click
+        the Login/Register button.
+        At the login page, log in with the username of admin and the password of admin. Click Login.
+
+    5 =     After you log in, go ahead and log out. Make sure
+        you press the Logout button and are logged out of the admin account.
+
+    6 =    In Burp, go to the Proxy | HTTP history tab and
+        select the request you just made, logging in as admin.
+        Select GET request immediately following the POST 302 redirect.
+        Right-click and then select Send toRepeater (request):
+
+    7 =     Using this same request and location, right-click again and Send to Comparer (request):
+
+    8 =    Go to Burp's Comparer tab.
+        Notice the two requests you sent are highlighted.
+        Press the Words button on the bottom right-hand side, to compare the two requests at the same time:
+
+    9 =   A dialog pop-up displays the two requests with color-
+        coded highlights to draw your eyes to the differences. Note the changes in the Referer header and the additional name/value pair placed in the admin account cookie.
+            Close the pop-up box with the X on the right-hand side:
+
+    10 =    Return to Repeater, which contains your first GET
+        request you performed as unauthenticated.
+        Prior to performing this attack, make sure you are completely logged out of the application.
+
+    11 =    You can verify you are logged out by clicking the Go
+        button in Repeater associated to your unauthenticated request:
+
+    12 =   Now flip over to the Repeater tab, which contains
+        your second GET request as authenticated user admin.
+
+        Copy the values for Referer header and Cookie from the authenticated request.
+        This attack is parameter modification for the purpose of bypassing authentication:
+
+    13 =   Copy the highlighted headers (Referer and Cookie)
+        from the authenticated GET request.
+            You are going to paste those values into the unauthenticated GET request.
+
+    14 =   Replace the same headers in the unauthenticated GET
+        request by highlighting and right-clicking, and select Paste.
+
+    15 =   Right-click and select Paste in the Repeater | Raw
+        tab of the first GET request you performed as unauthenticated.
+
+    16 =   Click the Go button to send your modified GET
+        request. Remember, this is the first GET request you performed as unauthenticated.
+
+    17 =   Verify that you are now logged in as admin in the
+        Response|Rendertab.
+        We were able to bypass the authentication mechanism (that is, the log in page) by performing parameter manipulation:
+
+
+How it works
+
+    By replaying both the token found in the cookie and the referer value of the authenticated request into the
+    unauthenticated request, we are able to bypass the authentication scheme and gain unauthorized access to the
+    application.
+
+
+por medio de esta twecnica de comparar y Repeater podemos
+copiar la cookie que esta autenticada y entrar nevamente a
+la pagina que esta Logout
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for browser cache weaknesses
+
+Browser caching is provided for improved performance and better end-user experience.
+However, when sensitive data is typed into a browser by the user, such data can also be cached in the browser history.
+This cached data is visible by examining the browser's cache or simply by pressing the browser's back button.
+
+Getting ready
+
+Using the browser's back button, determine whether login
+credentials are cached, allowing for unauthorized access.
+Examine these steps in Burp, to understand the vulnerability.
+
+
+How to do it...
+
+    1 =   Log into the Mutillidae application as admin with the password admin.
+
+    2 =   Now log out of the application by clicking the Logout
+        button from the top menu.
+
+    3 =   Verify you are logged out by noting the Not Logged In message.
+
+    4 =   View these steps as messages in Burp's Proxy | History
+        as well.
+        Note the logout performs a 302 redirect in an effort to not cache cookies or credentials in the browser:
+
+    5 =   From the Firefox browser, click the back button and
+        notice that you are now logged in as admin even though you did not log in!
+        This is possible because of cached credentials stored in the browser and the lack of any cache-control protections set in the application.
+
+    6 =   Now refresh/reload the page in the browser, and you
+        will see you are logged out again.
+
+    7=   Examine the steps within the Proxy | HTTP history tab.
+        Review the steps you did through the browser against the messages captured in the Proxy | HTTP history table:
+
+            Request 1 in the following screenshot is unauthenticate
+
+            Request 35 is the successful login (302) as admin
+
+            Request 37 is the logout of the admin account
+
+            Requests 38 and 39 are the refresh or reload of the browser page, logging us out again
+
+    8 =   There is no request captured when you press the
+        browser's back button.
+        This is because the back button action is contained in the browser.
+        No message was sent through Burp to the web server to perform this action.
+        This is an important distinction to note.
+
+        Nonetheless(sin embargo), we found a vulnerability associated with weak browser-caching protection.
+
+        In cases such as this, penetration testers will take a
+        screenshot of the logged-in cached page, seen after clicking the back button:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing the account provisioning process via the REST API
+
+Account provisioning is the process of establishing and maintaining user accounts within an application.
+
+Provisioning capabilities are usually restricted to administrator accounts.
+Penetration testers must validate account-provisioning functions are done by users providing proper identification and
+authorization.
+A common venue for account provisioning is through Representational State Transfer (REST) API calls.
+Many times, developers may not put the same authorization checks in place for API calls that are used in the UI portion of an application.
+
+
+Getting ready
+
+Using REST API calls available in the OWASP Mutillidae II
+application, determine whether an unauthenticated API call can provision or modify users.
+
+
+How to do it...
+
+Make sure you are not logged into the application. If you are, click the Logout button from the top menu.
+
+    1=  Within Mutillidae, browse to the User Lookup (SQL) Page
+        and select OWASP 2017 | A1 Injection (SQL) | SQLi – Extract Data | User Info (SQL):
+
+    2=  Type user for Name and user for Password, and click View
+        Account Details.
+        You should see the results shown in the next screenshot. This is the account we will test provisioning functions against, using REST calls:
+
+Through Spidering, Burp can find /api or /rest folders.
+Such folders are clues that an application is REST API enabled.
+A tester needs to determine which functions are available through these API calls
+
+    3=  For Mutillidae, the /webservices/rest/ folder structure
+        offers account provisioning through REST API calls.
+
+    4=  To go directly to this structure within Mutillidae,
+        select Web Services|REST|SQL Injection|UserAccount Management:
+
+You are presented with a screen describing the supported REST calls and parameters required for each call:
+        My localweb   (Help: This service exposes GET, POST, PUT, DELETE methods. This service is vulnerable to SQL injection in security level 0.)
+
+    5=  Let's try to invoke one of the REST calls. Go to the
+        Proxy | HTTP history table and select the latest request
+        you sent from the menu, to get to the User Account Management page.
+            Right-click and send this request to Repeater:
+
+    6=  In Burp's Repeater, add the ?, followed by a parameter
+        name/value pair of username=user to the URL. The new URL should be as follows
+
+    7=  Click the Go button and notice we are able to retrieve
+        data as an unauthenticated user! No authentication token is required to perform such actions:
+
+            en mi caso realicce un attack Intruder with list
+                of name in a simple list and the differents
+                results I choose john for this example
+
+            (Result: {Accounts: {[{"username":"john","mysignature":"I like the smell of confunk"},{"username":"john","mysignature":"Do the Duggie!"}]}})
+
+    8=  Let's see what else we can do.
+        Using the SQL Injection string given on the User Account Management page, let's attempt to dump the entire user table.
+
+    9=  Append the following value after username=:
+            john'+union+select+concat('The+password+for+',username,'+is+',+password),mysignature+from+accounts+--+
+
+        mutillidae/webservices/rest/ws-user-account.php?username=john'+union+select+concat('The+password+for+',username,'+is+',+password),mysignature+from+accounts+--+
+
+    10=  Click the Go button after making the change to the
+        username parameter.
+        Your request should look as shown in the following screenshot:
+
+        Result:
+        {Accounts: {[{"username":"john","mysignature":"I like
+        the smell of confunk"},(monkey is john's password )
+        {"username":"john","mysignature":"Do the Duggie!"},
+        {"username":"The password for admin is adminpass","mysignature":"g0t r00t?"}
+
+    11=  Notice we dumped all of the accounts in the database, displaying all usernames, passwords, and signatures:
+
+    12=  Armed with (armado con) this information, return to
+         Proxy | HTTP History, select the request you made to see the UserAccount Management page, right-click, and send to Repeater.
+
+    13=  In Repeater, modify the GET verb and replace it with
+         DELETE within the Raw tab of the Request:
+
+    14=  Move to the Params tab, click the Add button, and add
+        two Body type parameters:
+        first, a username with the value set to john, and second, a password with the value set to monkey,
+        and then click the Go button:
+
+    15=  Notice we deleted the account! We were able to retrieve
+        information and even modify (delete) rows within the
+        database without ever showing an API key or authentication token!
+
+
+Note
+
+    Note: If you wish to re-create the user account, repeat the previous steps, replacing delete with put. A signature is optional.
+    Click the Go button. The user account is re-created again.

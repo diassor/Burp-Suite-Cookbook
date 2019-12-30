@@ -1,0 +1,81 @@
+Chapter 1. Getting Started with Burp Suite
+
+In this chapter, we will cover the following recipes:
+
+    Downloading Burp (Community, Professional)
+    Setting up a web app pentesting lab
+    Starting Burp at a command line or an executable
+    Listening for HTTP traffic, using Burp
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Setting up a web app pentesting lab
+
+The Broken Web Application (BWA) is an OWASP project that provides a self-contained VM complete with a variety of
+applications with known vulnerabilities.
+
+The applications within this VM enable students to learn about web application security, practice and observe web attacks, and make use of penetration tools such as Burp.
+
+To follow the recipes shown in this book, we will utilize OWASP's BWA VM. At the time of this writing, the OWASP BWA VM
+can be downloaded from https://sourceforge.net/projects/owaspbwa/files/.
+
+last downloaded owaspbwa we used app-cl1.vmdk
+and make a virtualbox machine and we used ubuntun(64-bit)
+    use an existing web App-cl1.vmdk(normal, 8.00 Gb)
+        create
+    and network use Host-only Adapter
+        virtualbox host-only Ethernet Adapter
+        start
+            username - root
+            password = owaspbwa
+                check the ip before and keep
+we use mutillidae
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Starting Burp at a command line or as an executable
+
+I'am used a professional version of burp suite with
+shell = java -jar burpsuite-loadar.jar cracket of password
+and run , before i eraeser the las version burp installed in
+kali for fac . and paste de new version downloaded
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Listening for HTTP traffic, using Burp
+    I used the bug firefox
+
+Burp is described as an intercepting proxy. This means Burp sits between the user's web browser and the application's web
+server and intercepts or captures all of the traffic flowing between them. This type of behavior is commonly referred to
+as a Proxy service.
+
+Penetration testers use intercepting proxies to capture traffic flowing between a web browser and a web application
+for the purposes of analysis and manipulation.
+    For example, a tester can pause any HTTP request, thus allowing parameter tampering prior to sending the request to the web server.
+
+Intercepting proxies, such as Burp, allow testers to intercept both HTTP requests and HTTP responses.
+
+This allows a tester to observe the behavior of the web application under different conditions.
+And, as we shall see, sometimes, the behaviors are unintended from what the original developer expected.
+
+To see the Burp suite in action, we need to configure our Firefox browser's Network Settings to point to our running
+instance of Burp.
+
+This enables Burp to capture all HTTP traffic that is flowing between your browser and the target web application.
+
+The following are the steps you can go through to listen to all HTTP traffic using Burp:
+
+    1 =  Open the Firefox browser and go to Options.
+    2 =  In the General tab, scroll down to the Network Proxy
+            section and then click Settings.
+    3 =     In the Connection Settings, select Manual proxy configuration and type in the IP address of 127.0.0.1 with
+    port 8080.
+    Select theUse this proxy server for all protocols checkbox:
+
+How it works...
+
+    The Burp Proxy service is listening on 127.0.0.1 port 8080.
+    Either of these settings can be changed to listen on an alternative IP address or port number.
+    However, for the purpose of learning, we will use the default settings.
