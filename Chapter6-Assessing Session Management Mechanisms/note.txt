@@ -1,0 +1,458 @@
+Chapter 6. Assessing Session Management Mechanisms
+
+In this chapter, we will cover the following recipes:
+
+    Testing session token strength using Sequencer
+    Testing for cookie attributes
+    Testing for session fixation
+    Testing for exposed session variables
+    Testing for Cross-Site Request Forgery
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Introduction
+
+This chapter covers techniques used to bypass and assess session management schemes.
+Session management schemes are used by applications to keep track of user activity, usually by means of session tokens.
+Web assessments of session management also involve determining the strength of session tokens used and whether those tokens are
+properly protected.
+We will learn how to use Burp to perform such tests.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing session token strength using Sequencer
+
+To track user activity from page to page within an application, developers create and assign unique session token values to each
+user.
+Most session token mechanisms include session IDs, hidden form fields, or cookies.
+Cookies are placed within the user's browser on the client-side.
+
+These session tokens should be examined by a penetration tester
+to ensure their uniqueness, randomness, and cryptographic strength, to prevent information leakage.
+
+If a session token value is easily guessable(adivinable) or remains unchanged after login, an attacker could apply (or
+fixate) a pre-known token value to a user. This is known as a session fixation attack.
+Generally speaking, the purpose of the attack is to harvest(cosechar) sensitive data in the user's account, since the
+session token is known to the attacker.
+
+
+Getting ready
+
+    We'll check the session tokens used in OWASP Mutillidae II to ensure they are created in a secure and an unpredictable way.
+    An attacker who is able to predict and forge a weak session token can perform session fixation attacks.
+
+
+How to do it...
+
+    Ensure(asegurar) Burp and the OWASP BWA VM are running and that Burp is configured in the Firefox browser used to view OWASP BWA applications.
+
+    1=  From the OWASP BWA Landing page, click the link to the
+        OWASP Mutillidae II application.
+
+    2=  Open the Firefox browser to access the home page of OWASP
+        Mutillidae II (URL:  http://<your_VM_assigned_IP_address>/mutillidae/).
+        Make sure you are starting a fresh session of the Mutillidae application and not logged into it already:
+
+    3=  Switch to the Proxy | HTTP History tab and select the
+        request showing your initial browse to the Mutillidae home page.
+
+    4=  Look for the GET (mutillidae)request and the associated
+        response containing the Set-Cookie: assignments.
+        Whenever you see this assignment, you can ensure you are getting a freshly created cookie for your session.
+        Specifically, we are interested in the PHPSESSID cookie value:
+
+    5=  Highlight the value of the of the PHPSESSID cookie, right-
+        click, and select Send to Sequencer:
+
+
+Sequencer is a tool within Burp designed to determine the strength or the quality of the randomness created within a
+session token.
+
+    6=  After sending the value of the PHPSESSID parameter over
+        to Sequencer, you will see the value loaded in the Select Live Capture Request(subtab) table.
+
+    7=  Before pressing the Start live capturebutton, scroll down
+        to theToken Location Within Response section.
+
+        In the Cookie dropdown list, select PHPSESSID=<captured session token value>:
+
+    8=  Since we have the correct cookie value selected, we can
+        begin the live capture process.
+        Click the Start live capture button, and Burp will send
+        multiple requests, extracting the PHPSESSID cookie out of
+        each response.
+        After each capture, Sequencer performs a statistical analysis of the level of randomness in each token.
+
+    9=  Allow the capture to gather and analyze at least 200
+        tokens, but feel free to let it run longer if you like:
+
+    10=  Once you have at least 200 samples, click the Analyze
+         now button.
+         Whenever you are ready to stop the capturing process, press the Stop button and confirm Yes:
+
+    11=  After the analysis is complete, the output of Sequencer
+        provides an overall(en general) result.
+
+        In this case, the quality of randomness(aleatoriedad) for the PHPSESSID session token is excellent.
+        The amount of effective entropy(entreopia) is estimated to be 112 bits.
+        From a web pentester perspective, these session tokens are very strong, so there is no vulnerability to report
+        here.
+        However, though there is no vulnerability present, it is good practice to perform such checks on session tokens:
+
+
+How it works...
+
+    To better understand the math and hypothesis behind Sequencer, consult Portswigger's documentation on the topic
+    here: https://portswigger.net/burp/documentation/desktop/tools/sequencer/tests.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for cookie attributes
+
+Important user-specific information, such as session tokens, is often stored in cookies within the client browser.
+Due to their importance, cookies need to be protected from malicious attacks.
+This protection usually comes in the form of two flags—secure and HttpOnly.
+
+The secure flag informs the browser to only send the cookie to
+the web server if the protocol is encrypted (for example, HTTPS, TLS).
+This flag protects the cookie from eavesdropping over(escuchando a escondidas) unencrypted channels.
+
+The HttpOnly flag instructs the browser to not allow access or manipulation of the cookie via JavaScript.
+This flag protects the cookie from cross-site scripting attacks.
+
+
+Getting ready
+
+    Check the cookies used in the OWASP Mutillidae II application, to ensure the presence of protective flags.
+
+    Since the Mutillidae application runs over an unencrypted channel (for example, HTTP), we can only check for the presence of the HttpOnly flag.
+    Therefore(por lo tanto), the secure flag is out of scope for this recipe.
+
+
+How to do it...
+
+    Ensure Burp and OWASP BWA VM are running and that Burp is configured in the Firefox browser used to view OWASP BWA applications.
+
+    1=  From the OWASP BWA Landing page, click the link to the
+        OWASP Mutillidae II application.
+
+    2=  Open the Firefox Browser, to access the home page of
+        OWASP Mutillidae II (URL:  http://<your_VM_assigned_IP_address>/mutillidae/).
+
+        Make sure you are starting a fresh session and you are not logged in to the Mutillidae application:
+            http://127.0.0.1/mutillidae/
+
+
+    3=  Switch to the Proxy | HTTP history tab, and select the
+        request showing your initial browse to the Mutillidae home page.
+        Look for the GET request and its associated response containing Set-Cookie: assignments.
+        Whenever you see this assignment, you can ensure you are getting a freshly created cookie for your session. Specifically, we are interested in the PHPSESSID cookie value.
+
+    4=  Examine the end of the Set-Cookie: assignments lines.
+        Notice the absence of the HttpOnly flag for both lines. This means the PHPSESSID and showhints cookie values are
+        not protected from JavaScript manipulation.
+        This is a security finding that you would include in your report:
+
+            Set-Cookie: PHPSESSID=dd00f6bb5aeb9d97fccfe3d818b46012; path=/
+
+            Set-Cookie: showhints=1
+
+
+How it works...
+
+        If the two cookies had HttpOnly flags set, the flags would appear at the end of the Set-Cookie assignment lines.
+        When present, the flag would immediately follow a semicolon ending the path scope of the cookie, followed by the string HttpOnly.
+        The display is similar for the Secure flag as well:
+
+        Set-Cookie: PHPSESSID=<session token value>;path=/;Secure;HttpOnly;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for session fixation
+
+Session tokens are assigned to users for tracking purposes.
+This means that when browsing an application as unauthenticated, a user is assigned a unique session ID, which is usually stored
+in a cookie.
+Application developers should always create a new session token after the user logs into the website.
+If this session token does not change, the application could be susceptible to a session fixation attack.
+It is the responsibility of web penetration testers to determine whether this token changes values from an unauthenticated state to an authenticated state.
+
+Session fixation is present when application developers do not invalidate the unauthenticated session token, allowing the user
+to use the same one after authentication.
+This scenario allows an attacker with a stolen session token to masquerade as(disfrazarse de) the user.
+
+
+Getting ready
+
+    Using the OWASP Mutillidae II application and Burp's Proxy HTTP History and Comparer, we will examine unauthenticated PHPSESSID session token value.
+    Then, we will log in to the application and compare the unauthenticated value against the authenticated value to determine the presence of the session fixation vulnerability.
+
+
+How to do it...
+
+    1=  Navigate to the login screen (click Login/Register from
+        the top menu), but do not log in yet.
+
+    2=  Switch to Burp's ProxyHTTP history tab, and look for the
+        GET request showing when you browsed to the login screen.
+        Make a note of the value assigned to the PHPSESSID parameter placed within a cookie:
+
+    3=  Right-click the PHPSESSID parameter and send the request
+        to Comparer:
+
+    4=  Return to the login screen (click Login/Register from
+        the top menu), and, this time, log in under the username ed and the password pentest.
+
+    5=  After logging in, switch to Burp's ProxyHTTP history
+        tab.
+        Look for the POST request showing your login (for example, the 302 HTTP status code) as well as the
+        immediate GET request following the POST.
+        Note the PHPSESSID assigned after login. Right-click and send this request to Comparer.
+
+    6=  Switch to Burp's Comparer.
+        The appropriate requests should already be highlighted for you.
+        Click the Words button in the bottom right-hand corner:
+
+
+A popup shows a detailed comparison of the differences between the two requests.
+Note the value of PHPSESSID does not change between the unauthenticated session (on the left) and the authenticated session (on the right).
+This means the application has a session fixation vulnerability:
+
+
+    GET /mutillidae/index.php?popUpNotificationCode=AU1 HTTP/1.1
+            autenticado
+        Cookie: showhints=1; username=ed; uid=23; PHPSESSID=f9809beb5bb9d2dfb78f9927d82298bd
+        Upgrade-Insecure-Requests: 1
+
+
+    GET /mutillidae/index.php?page=login.php HTTP/1.1
+            no autenticado
+        Cookie: showhints=1; PHPSESSID=f9809beb5bb9d2dfb78f9927d82298bd
+        Upgrade-Insecure-Requests: 1
+
+How it works...
+
+    In this recipe, we examined how the PHPSESSID value assigned to an unauthenticated user remained constant even after
+    authentication.
+    This is a security vulnerability allowing for the session fixation attack.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for exposed session variables
+
+Session variables such as tokens, cookies, or hidden form fields
+are used by application developers to send data between the client and the server.
+Since these variables are exposed on the client-side, an
+attacker can manipulate them in an attempt to gain access to unauthorized data or to capture sensitive information.
+
+Burp's Proxy option provides a feature to enhance the visibility of so-called hidden form fields.
+This feature allows web application penetration testers to determine the level of the sensitivity of data held in these
+variables.
+Likewise(igualmente), a pentester can determine whether the manipulation of these values produces a different behavior in the application.
+
+
+Getting ready
+
+    Using the OWASP Mutillidae II application and Burp's Proxy's Unhide hidden form fields feature, we'll determine whether
+    manipulation of a hidden form field value results in gaining access to unauthorized data.
+
+
+How to do it...
+
+    1=  Switch to Burp's Proxy tab, scroll down to the
+        Response Modification section, and check the boxes for Unhide hidden form fields and Prominently highlight unhidden fields:
+
+    2=  Navigate to the User Info page.
+        OWASP 2017 | A1 – Injection (SQL) | SQLi – Extract Data | User Info (SQL):
+
+    3=  Note the hidden form fields now prominently displayed on
+        the page:
+                Hidden field [page] [user-info.php]
+
+    4=  Let's try to manipulate the value shown, user-info.php,
+        by changing it to admin.php and see how the application reacts.
+        Modify the user-info.php to admin.php within the Hidden field [page] textbox:
+
+    5=  Hit the Enter key after making the change.
+        You should now see a new page loaded showing PHP Server Configuration information:
+            PHP Version 7.3.7 and more info about my system
+
+
+
+How it works...
+
+    As seen in this recipe, there isn't anything hidden about hidden form fields.
+    As penetration testers, we should examine and manipulate these values, to determine whether sensitive information is,
+    inadvertently, exposed or whether we can change the behavior
+    of the application from what is expected, based on our role
+    and authentication status.
+    In the case of this recipe, we were not even logged into the application.
+    We manipulated the hidden form field labeled page to access a page containing fingerprinting information.
+    Access to such information should be protected from unauthenticated users.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for Cross-Site Request Forgery
+
+Cross-Site Request Forgery (CSRF) is an attack that rides on an authenticated user's session to allow an attacker to force the
+user to execute unwanted actions on the attacker's behalf.(nombre del atacante)
+
+The initial lure(senuelo) for this attack can be a phishing email or a malicious link executing through a cross-site
+scripting vulnerability found on the victim's website.
+CSRF exploitation may lead to a data breach or even a full compromise of the web application
+
+
+Getting ready
+
+    Using the OWASP Mutillidae II application registration form, determine whether a CSRF attack is possible within the same
+    browser (a different tab) while an authenticated user is logged into the application.
+
+
+How to do it...
+
+    To level set this recipe, let's first baseline the current number of records in the account table and perform SQL Injection to see this:
+
+    1=  Navigate to the User Info page: OWASP 2017 | A1 –
+        Injection (SQL) | SQLi – Extract Data | User Info (SQL).
+
+    2=  At the username prompt, type in a SQL Injection payload
+        to dump the entire account table contents.
+        The payload is ' or 1=1-- <space>  (tick or 1 equals 1 dash dash space).
+        Then press the View Account Details button.
+
+    3=  Remember to include the space after the two dashes,
+        since this is a MySQL database;
+            otherwise, the payload will not work:
+
+Results for "' or 1=1-- ".23 records found.
+
+            Username=admin
+            Password=adminpass
+            Signature=g0t r00t?
+
+            Username=adrian
+            Password=somepassword
+            Signature=Zombie Films Rock!
+
+We confirmed 23 records currently exist in the accounts table of the database.
+
+    4=  When performed correctly, a message displays that there
+        are 23 records found in the database for users.
+        The data shown following the message reveals the usernames, passwords, and signature strings of all 23 accounts.
+        Only two account details are shown here as a sample:
+
+    5=  Now, return to the login screen (click Login/Register
+        from the top menu) and select the link Please register here.
+
+    6=  After clicking the Please register herelink, you are
+        presented with a registration form.
+
+    7=  Fill out the form to create a tester account.
+        Type in the Username as tester, the Password as tester, and the Signature as This is a tester account:
+
+    8=  After clicking the Create Account button, you should
+        receive a green banner confirming the account was created:
+
+            Account created for tester. 1 rows inserted.
+
+    9=  Return to the User Info page: OWASP 2017| A1 – Injection
+        (SQL) | SQLi – Extract Data | User Info (SQL).
+
+    10= Perform the SQL Injection attack again and verify that
+        you can now see 24 rows in the account table, instead of the previous count of 23:
+
+             Results for "' or 1=1-- ".24 records found.
+
+             Username=tester
+             Password=tester
+             Signature=This is a tester account
+
+
+    11= Switch to Burp's Proxy HTTP history tab and view the
+        POST request that created the account for the tester.
+
+    12= Studying this POST request shows the POST action
+        (register.php) and the body data required to perform the
+        action, in this case, username, password,
+        confirm_password, and my_signature.
+        Also notice there is no CSRF-token used.
+        CSRF-tokens are placed within web forms to protect against the very attack we are about to perform.
+            Let's proceed.
+
+        csrf-token=&username=tester&password=tester&confirm_password=tester&my_signature=This+is+a+tester+account&register-php-submit-button=Create+Account
+
+    13=  Right-click the POST request and click on Send to
+        Repeater:
+
+    14=  If you're using Burp Professional, right-click select
+         Engagement tools | Generate CSRF PoC:
+
+    15=  Upon clicking this feature, a pop-up box generates the
+         same form used on the registration page but without any CSRF token protection:
+
+    16=  If you are using Burp Community, you can easily
+         recreate the CSRF PoC form by viewing the source code of the registration page:
+            click right and select View Page Source
+
+    17=  While viewing the page source, scroll down to the
+         <form> tag section.
+         For brevity, the form is recreated next.
+         Insert attacker as a value for the username, password, and the signature.
+         Copy the following HTML code and save it in a file entitled csrf.html:
+
+
+<html>
+  <body>
+  <script>history.pushState('', '', '/')</script>
+    <form action="http://192.168.56.101/mutillidae/index.php?page=register.php" method="POST">
+      <input type="hidden" name="csrf-token" value="" />
+      <input type="hidden" name="username" value="attacker" />
+      <input type="hidden" name="password" value="attacker" />
+      <input type="hidden" name="confirm_password" value="attacker"
+/>      <input type="hidden" name="my_signature" value="attacker account" />
+      <input type="hidden" name="register-php-submit-button" value="Create Account" />
+      <input type="submit" value="Submit request" />
+    </form>
+  </body>
+</html>
+
+    18=  Now, return to the login screen (click Login/Register
+        from the top menu), and log in to the application, using the username ed and the password pentest.
+
+    19= Open the location on your machine where you saved the
+        csrf.html file.
+        Drag the file into the browser where ed is authenticated.
+        After you drag the file to this browser, csrf.html will appear as a separate tab in the same browser:
+
+    20= For demonstration purposes, there is a Submit request
+        button.
+        However, in the wild, a JavaScript function would automatically execute the action of creating an account
+        for the attacker.
+        Click the Submit request button:
+
+            Account created for atacante. 1 rows inserted
+
+    21=  Switch to Burp's Proxy | HTTP history tab and find the
+         maliciously executed POST used to create the account
+         for the attacker, while riding on the authenticated session of ed's:
+
+    22=  Return to the User Info page: OWASP 2017 | A1 –
+         Injection (SQL) | SQLi – Extract Data | User Info (SQL), and perform the SQL Injection attack again.
+
+         You will now see 25 rows in the account table instead of the previous count of 24:
+             Results for "' or 1=1-- ".25 records found.
+
+
+How it works...
+
+    CSRF attacks require an authenticated user session to surreptitiously perform actions within the application on
+    behalf of the attacker.
+    In this case, an attacker rides on ed's session to re-run the registration form, to create an account for the attacker.
+    If ed had been an admin, this could have allowed the account role to be elevated as well.
+    
