@@ -1,0 +1,502 @@
+Chapter 7. Assessing Business Logic
+
+In this chapter, we will cover the following recipes:
+
+    Testing business logic data validation
+    Unrestricted file upload – bypassing weak validation
+    Performing process-timing attacks
+    Testing for the circumvention of workflows
+    Uploading malicious files – polyglots
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Introduction
+
+This chapter covers the basics of business logic testing, including an explanation of some of the more common tests
+performed in this area.
+Web penetration testing involves key assessments of business logic to determine how well the design of an application performs
+integrity checks, especially within sequential application function steps, and we will be learning how to use Burp to
+perform such tests.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing business logic data validation
+
+Business logic data validation errors occur due to a lack of server-side checks, especially in a sequence of events such as
+shopping cart checkouts.
+If design flaws, such as thread issues, are present, those flaws may allow an attacker to modify or change their shopping cart contents or prices, prior to purchasing them, to lower the price paid.
+
+
+Getting ready
+
+    Using the OWASP WebGoat application and Burp, we will exploit a business logic design flaw, to purchase many large ticket
+    items for a very cheap price.
+
+    1=  Ensure the owaspbwa VM is running.
+        Select the OWASP WebGoat application from the initial landing page of the VM.
+        The landing page will be configured to an IP address specific to your machine:
+
+    2=  After you click the OWASP WebGoat link, you will be
+        prompted for some login credentials.
+        Use these credentials:
+            User Name: guest   and    Password: guest
+
+    3=  After authentication, click the Start WebGoat button to
+        access the application exercises:
+
+    4=  Click Concurrency | Shopping Cart Concurrency Flaw from
+        the left-hand menu:
+
+The exercise explains there is a thread issue in the design of
+the shopping cart that will allow us to purchase items at a lower price.
+    Let's exploit the design flaw!
+
+    5=  Add 1 to the Quantity box for the Sony - Vaio with Intel
+        Centrino item.
+            Click the Update Cart button:
+
+    6=  Switch to Burp Proxy | HTTP history tab. Find the cart
+        request, right-click, and click Send to Repeater:
+
+    7=  Inside Burp's Repeater tab, change theQTY3 parameter from
+        1 to 10:
+
+    8=  Stay in Burp Repeater, and in the request pane,
+        right-click and select
+            Request in browser | In current browser session:
+
+    9=  A pop-up displays the modified request.
+            Click the Copy button:
+
+    10=  Using the same Firefox browser containing the shopping
+         cart, open a new tab and paste in the URL that you
+         copied into the clipboard in the previous step:
+
+    11=  Press the Enter key to see the request resubmitted with
+         a modified quantity of 10
+
+    12=  Switch to the original tab containing your shopping cart
+        (the cart with the original quantity of 1).
+            Click the Purchase button:
+
+    13=  At the next screen,
+         before clicking the Confirm button,
+         switch to the second tab, and update the cart again,
+         but this time with our new quantity of 10,
+            and click on Update Cart:
+
+    14=  Return to the first tab,
+            and click the Confirm button:
+
+Notice we were able to purchase 10 Sony Vaio laptops for the price of one!
+
+
+How it works...
+
+    Thread-safety issues(Problemas de seguridad de hilos) can produce unintended results.
+
+    For many languages, the developer's knowledge of how to declare variables and methods as thread-safe is imperative.
+
+    Threads that are not isolated, such as the cart contents shown in this recipe, can result in users gaining unintended discounts on products.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Unrestricted file upload – bypassing weak validation
+
+Many applications allow for files to be uploaded for various reasons.
+
+Business logic on the server-side must include checking for acceptable files; this is known as whitelisting(lista blanca).
+
+If such checks are weak or only address one aspect of file attributes (for example, file extensions only), attackers can
+exploit these weaknesses and upload unexpected file types that may be executable on the server.
+
+
+Getting ready
+
+    Using the Damn Vulnerable Web Application (DVWA)application and Burp, we will exploit a business logic design flaw in
+    the file upload page.
+
+
+How to do it
+
+    1=  Ensure the owaspbwa VM is running.
+        Select DVWA from the initial landing page of the VM.
+        The landing page will be configured to an IP address specific to your machine.
+
+    2=  At the login page, use these credentials:
+            Username: user;
+            Password: user.
+
+    3=  Select the DVWA Securityoption from the menu on the left.
+
+            Change the default setting of low to medium and then clickSubmit:
+
+    4=   Select the Upload page from the menu on the left:
+
+    5=  Note the page instructs users to only upload images.
+        If we try another type of file other than a JPG image, we receive an error message in the upper left-hand corner:
+
+    6=  On your local machine, create a file of any type, other
+        than JPG.
+        For example, create a Microsoft Excel file called malicious_spreadsheet.xlsx.
+        It does not need to have any content for the purpose of this recipe.
+
+    7=  Switch to Burp's Proxy | Intercept tab. Turn Interceptor
+        on with the button Intercept is on.
+
+    8=  Return to Firefox, and use the Browse button to find the
+        malicious_spreadsheet.xlsx file on your system and click the Uploadbutton:
+
+    9=  With the request paused in Burp's Proxy | Interceptor,
+        change the Content-type from
+        Content-Type: application/x-php
+        to image/jpeg
+            instead.
+
+    10=  Click the Forward button.
+         Now turn Interceptor off by clicking the toggle button to Intercept is off.
+
+    11=  Note the file uploaded successfully!
+         We were able to bypass the weak data validation checks and upload a file other than an image:
+         ../../hackable/uploads/phpinfo-shortsyntax.php succesfully uploaded!
+
+
+How it works...
+
+    Due to weak server-side checks, we are able to easily circumvent the image-only restriction and upload a file type
+    of our choice.
+
+    The application code only checks for content types matching image/jpeg, which is easily modified with an intercepting
+    proxy such as Burp.
+    Developers need to simultaneously whitelist both content-type as well as file extensions in the application code to
+    prevent this type of exploit from occurring.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Performing process-timing attacks
+
+    By monitoring the time an application takes to complete a task, it is possible for attackers to gather or infer
+    information about how an application is coded.
+        For example, a login process using valid credentials receives a response quicker than the same login process
+        given invalid credentials.
+    This delay in response time leaks information related to
+    system processes.
+    An attacker could use a response time to perform account
+    enumeration and determine valid usernames based upon the time of the response.
+
+
+Getting ready
+
+    For this recipe, you will need the common_pass.txt wordlist from wfuzz:
+    https://github.com/xmendez/wfuzz
+        Path: wordlists | other | common_pass.txt
+
+    Using OWASP Mutillidae II, we will determine whether the application provides information leakage(fuga) based on the response time from forced logins.
+
+
+How to do it...
+
+    Ensure Burp is running, and also ensure that the owaspbwa VM
+    is running and that Burp is configured in the Firefox browser used to view owaspbwa applications.
+
+
+
+    1=  From the owaspbwa landing page, click the link to OWASP Mutillidae II application.
+
+    2=  Open Firefox browser to the home of OWASP Mutillidae II
+        (URL: http://<your_VM_assigned_IP_address>/mutillidae/).
+
+    3=  Go to the login page and log in using the username ed
+        and the password pentest.
+
+    4=  Switch to Burp's Proxy | HTTP history tab, find the
+        login you just performed, right-click, and select Send to Intruder:
+
+    5=  Go to the Intruder | Positions tab,
+        and clear all the payload markers, using the Clear § button on the right-hand side:
+
+    6=  Select the password field and click the Add § button to
+        wrap a payload marker around that field:
+
+    username=ed&password=§pentest§&login-php-submit-button=Login
+
+    7=  Also, remove the PHPSESSID token.
+        Delete the value present in this token (the content following the equals sign) and leave it blank.
+        This step is very important,
+        because if you happen to leave this token in the requests, you will be unable to see the difference in
+        the timings, since the application will think you are already logged in:
+
+    8=  Go to the Intruder | Payloads tab.
+        Within the Payload Options [Simple list], we will add
+        some invalid values by using a wordlist from wfuzz
+        containing common passwords:wfuzz | wordlists | other | common_pass.txt:
+
+    9=  Scroll to the bottom and uncheck the checkbox for
+        Payload Encoding:
+
+    10= Click the Start attack button.
+        An attack results table appears(aparece).
+
+        Let the attacks complete.
+        From the attack results table, select Columns and check Response received.
+        Check Response completed to add these columns to the attack results table:
+
+    11= Analyze the results provided.
+        Though(aunque) not obvious on every response, note the delay when an invalid password is used such as
+        administrator.
+        The Response received timing is 51,
+        but the Response completed timing is 55.
+
+        However, the valid password of pentest (only 302) receives an immediate response:
+        39 (received), and 39 (completed):
+            the same time
+
+
+How it works...
+
+        Information leakage(fuga) can occur when processing error messages or invalid coding paths takes longer than
+        valid code paths.
+        Developers must ensure the business logic does not give away such clues(pistas) to attackers.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing for the circumvention of work flows
+    (Pruebas para eludir los flujos de trabajo.)
+
+Shopping cart to payment gateway interactions must be tested by web app penetration testers to ensure the workflow cannot be
+performed out of sequence.
+
+A payment should never be made unless a verification of the cart contents is checked on the server-side first.
+
+In the event this check is missing, an attacker can change the price, quantity, or both, prior to the actual purchase.
+
+
+Getting ready
+
+    Using the OWASP WebGoat application and Burp, we will exploit a business logic design flaw in which there is no
+    server-side validation prior to a purchase.
+
+How to do it...
+
+    1=  Ensure the owaspbwa VM is running.
+        Select the OWASP WebGoat application from the initial landing page of the VM.
+        The landing page will be configured to an IP address specific to your machine.
+
+    2=  After you click the OWASP WebGoat link, you will be
+        prompted for login credentials.
+        Use these credentials:
+        User Name: guest;
+        password: guest.
+
+    3=  After authentication, click the Start WebGoat button to
+        access the application exercises.
+
+    4=  Click AJAX Security | Insecure Client Storage from the
+        left-hand menu.
+        You are presented with a shopping cart:
+
+    5=  Switch to Burp's Proxy | HTTP history tab,
+        Click the Filter button, and ensure your Filter
+        by MIME type section includes (check)Script.
+        If Script is not checked, be sure to check it now:
+
+    6=  Return to the Firefox browser with WebGoat and specify a
+        quantity of 2 for the Hewlett-Packard -
+        Pavilion Notebook with Intel Centrino item:
+
+    7=  Switch back to Burp's Proxy | HTTP history tab and
+        notice the JavaScript (*.js) files associated with the change you made to the quantity.
+        Note a script called clientSideValiation.js.
+        Make sure the status code is 200 and not 304 (not modified).
+        Only the 200 status code will show you the source code of the script:
+
+    8=  Select the clientSideValidation.js
+        file and view its source code in the Response tab.
+
+    9=  Note that coupon codes are hard-coded within the
+        JavaScript file.
+        However, used literally as they are, they will not work:
+
+    10=  Keep looking at the source code and notice there is a
+         decrypt function found in the JavaScript file.
+         We can test one of the coupon codes by sending it through this function.
+         Let’s try this test back in the Firefox browser:
+
+    11=  In the browser, bring up the developer tools (F12) and
+         go to the Console tab.
+         Paste into the console (look for the >> prompt) the following command:
+
+         decrypt('emph');
+
+    12=  You may use this command to call the decrypt function
+         on any of the coupon codes declared within the array:
+
+
+    13 = After pressing Enter,
+        you will see the coupon code is decrypted to the word GOLD:
+
+    14=  Place the word GOLD within the Enter your coupon code
+         box.
+         Notice the amount is now much less.
+         Next, click the Purchase button:
+
+    15=  We receive confirmation regarding stage 1 completion.
+         Let's now try to get the purchase for free:
+
+
+    16=  Switch to Burp's Proxy | Intercept tab and turn
+         Interceptor on with the button Intercept is on.
+
+
+    17=  Return to Firefox and press the Purchase button.
+         While the request is paused, modify the $1,599.99 amount to $0.00.
+         Look for the GRANDTOT parameter to help you find the grand total to change:
+
+    18=  Click the Forward button.
+         Now turn Interceptor off by clicking the toggle button to Intercept is off.
+
+    19=  You should receive a success message.
+            Note the total charged is now $0.00:
+
+
+How it works...
+
+        Due to a lack of server-side checking for both the coupon code as well as the grand total amount prior to
+        charging the credit card,
+        we are able to circumvent(eludir) the prices assigned and set our own prices instead.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Uploading malicious files – polyglots(poligrotas)
+
+(wikipedia  )
+    In computing, a polyglot is a computer program or script written in a valid form of multiple programming languages, which performs the same operations or output independent of the programming language used to compile or interpret it.
+
+Polyglot is a term defined as something that uses several languages.
+If we carry this concept into hacking, it means the creation of a cross-site scripting (XSS) attack vector by using different languages as execution points.
+    For example, attackers can construct valid images and embed JavaScript with them.
+    The placement of the JavaScript payload is usually in the comments section of an image.
+    Once the image is loaded in a browser, the XSS content may execute, depending upon(sobre) the strictness of the content-
+    type declared by the web server and the interpretation of the content-type by the browser.
+
+
+Getting ready
+
+    Download a JPG file containing a cross-site scripting vulnerability from the PortSwigger blog page: https://portswigger.net/blog/bypassing-csp-using-polyglot-jpegs
+
+            Here is a direct link to the polyglot image: http://portswigger-labs.net/polyglot/jpeg/xss.jpg
+
+    Using the OWASP WebGoat file upload functionality, we will plant an image into the application that contains an XSS payload.
+
+
+
+How to do it...
+
+    1=  Ensure the owaspbwa VM is running.
+        Select the OWASP WebGoat application from the initial landing page of the VM.
+        The landing page will be configured to an IP address specific to your machine.
+
+    2=  After you click the OWASP WebGoat link, you will be
+        prompted for login credentials.
+        Use these credentials:
+        username: guest;
+        password:guest.
+
+    3=  After authentication,
+        click the Start WebGoat button to access the application exercises.
+
+    4=  Click Malicious Execution | Malicious File Execution
+        from the left-hand menu.
+        You are presented with a file upload functionality page.
+
+        The instructions state that only images are allowed for upload:
+
+    5=  Browse to the location where you saved the xss.jpg image
+        that you downloaded from the PortSwigger blog page mentioned at the beginning of this recipe.
+            He cambiado la imagen por otra del
+        path=/SecLists-master/Payloads/lottapixel.jpg
+
+
+
+    6=  The following screenshot how the image looks.
+        As you can see, it is difficult to detect any XSS vulnerability contained within the image.
+            It is hidden from plain view.
+
+    7=  Click the Browse button to select the xss.jpg file:
+
+    8=  Switch to Burp's Proxy | Options.
+        Make sure you are capturing Client responses and have the following settings enabled.
+        This will allow us to capture HTTP responses modified or intercepted:
+
+    9=  Switch to Burp's Proxy | Intercept tab.
+        Turn Interceptor on with the button Intercept is on.
+
+    10=  Return to the Firefox browser, and click the Start
+         Upload button.
+         The message should be paused within Burp's Interceptor.
+
+    11=  Within the Intercept window while the request is
+         paused, type Burp rocks into the search box at the bottom.
+         You should see a match in the middle of the image.
+         This is our polyglot payload.
+         It is an image, but it contains a hidden XSS script within the comments of the image:
+
+    12=  Click the Forward button.
+         Now turn Interceptor off by clicking the toggle button to Intercept is off.
+
+    13=  Using Notepad or your favorite text editor, create a
+         new file called poly.jsp,
+         and write the following code within the file:
+
+         <html>
+         <% java.io.File file=newjava.oi.File("/var/lib/tomcat6/webapps/WebGoat/mfe_target/guest.txt")
+             file.createNewFile();%>
+         </html>
+
+    14=  Return to the Malicious File Execution page, and browse
+         to the poly.jsp file you created,
+         and then click the Start Upload button.
+         The poly.jsp is a Java Server Pages file that is executable on this web server.
+         Following the instructions, we must create a guest.txt file in the path provided.
+         This code creates that file in JSP scriptlet tag code:
+
+
+    15=  Right-click the unrecognized image,
+         and select Copy Image Location.
+
+    16=  Open a new tab within the same Firefox browser as
+         WebGoat, and paste the image location in the new tab.
+
+         Press Enter to execute the script, and give the script a few seconds to run in the background before moving to the next step.
+
+    17=  Flip back to the first tab, F5, to refresh the page,
+         and you should receive the successfully completed
+         message.
+         If your script is running slowly, try uploading the poly.jspon the upload page again.
+         The success message should appear:
+
+
+How it works...
+
+    Due to unrestricted file upload vulnerability,
+    we can upload a malicious file such as a polyglot without detection from the web server.
+    Many sites allow images to be uploaded, so developers must ensure such images do not carry XSS payloads within them.
+
+    Protection in this area can be in the form of magic number checks or special proxy servers screening all uploads.
+
+
+There's more...
+
+    To read more about polyglots, please refer to the Portswigger blog:
+        https://portswigger.net/blog/bypassing-csp-using-polyglot-jpegs.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

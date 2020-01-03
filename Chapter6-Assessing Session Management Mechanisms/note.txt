@@ -455,4 +455,3 @@ How it works...
     behalf of the attacker.
     In this case, an attacker rides on ed's session to re-run the registration form, to create an account for the attacker.
     If ed had been an admin, this could have allowed the account role to be elevated as well.
-    
