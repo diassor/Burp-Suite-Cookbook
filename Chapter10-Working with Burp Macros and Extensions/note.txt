@@ -1,0 +1,384 @@
+Chapter 10 Working with Burp Macros and Extensions
+
+n this chapter, we will cover the following recipes:
+
+    Creating session-handling macros
+    Getting caught in the cookie jar
+    Adding great pentester plugins
+    Creating new issues via Manual-Scan Issue Extension
+    Working with Active Scan++ Extension
+
+Introduction
+
+    This chapter covers two separate topics that can also be blended together:
+        macros and extensions.
+    Burp macros enable penetration testers to automate events, such as logins or parameter reads, to overcome potential error situations.
+
+    Extensions, also known as plugins, extend the core functionality found in Burp.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Creating session-handling macros
+
+In Burp, the Project options tab allows testers to set up session-handling rules.
+A session-handling rule allows a tester to specify a set of actions Burp will take in relation to session tokens or CSRF
+tokens while making HTTP Requests.
+There is a default session-handling rule in scope for Spider and Scanner.
+However, in this recipe, we will create a new session-handling rule and use a macro to help us create an authenticated session from an unauthenticated one while using Repeater.
+
+
+Getting ready
+
+    Using the OWASP Mutilliae II application, we will create a new Burp Session-Handling rule, with an associated macro, to create an authenticated session from an unauthenticated one while using Repeater.
+
+How to do it...
+
+
+    1=  Navigate to the Login page in Mutillidae.
+        Log into the application as username ed with password pentest.
+
+    2=  Immediately log out of the application by clicking the
+        Logoutbutton and make sure the application confirms you are logged out.
+
+    3=  Switch to the Burp Proxy HTTP history tab.
+        Look for the logout request you just made along with the subsequent, unauthenticatedGET request.
+        Select theunauthenticated request, which is the second GET.
+            Right-click and send that request to Repeater, as follows:
+    4=  Switch to Burp Repeater, then click the Go button.
+        On the Render tab of the response, ensure you receive the Not Logged In message.
+        We will use this scenario to build a session-handling rule to address the unauthenticated session and make it an authenticated one, as follows:
+
+    5=  Switch to the Burp Project options tab,
+        then the Sessions tab,
+        and click the Add button under the Session Handling Rules section, as follows:
+
+    6=  After clicking the Add button, a pop-up box appears.
+        Give your new rule a name,
+        such as LogInSessionRule,
+        and, under Rule Actions,
+            selectRun a macro, as follows:
+
+    7=  Another pop-up box appears,
+        which is the Session handling action editor.
+        In the first section, under Select macro,
+        click the Add button, as follows:
+
+    8=  After clicking the Add button,
+        the macro editor appears along with another pop-up of the Macro Recorder, as follows:
+
+
+Note
+
+    Note: A bug exists in 1.7.35 that disables Macro Recorder. Therefore, after clicking the Add button, if the recorder does not appear, upgrade the Burp version to 1.7.36 or higher.
+
+    9=  Inside the Macro Recorder,
+        look for the POST request where you logged in as Ed as well as the following GET request.
+        Highlight both of those requests within the Macro
+            Recorder window and click OK, as follows:
+
+    10=  Those two highlighted requests in the previous dialog
+         box now appear inside the Macro Editor window.
+         Give the macro a description, such as LogInMacro, as follows:
+
+    11=  Click the Configure item button to validate that the
+         username and password values are correct.
+         Click OK when done, as follows:
+
+    12=  Click OK to close the Macro Editor.
+         You should see the newly-created macro in the Session handling action editor.
+         Click OK to close this dialog window, as follows:
+
+    13=  After closing the Session handling action editor,
+         you are returned to the Session handling rule editor
+         where you now see the
+         Rule Actions section populated with the name of your macro.
+            Click the Scope tab of this window to define which tool will use this rule:
+
+    14=  On the Scope tab of the Session handling rule editor,
+         uncheck the other boxes, leaving only the Repeater checked.
+         Under URL Scope, click the Include all URLs radio button.
+         Click OK to close this editor, as follows:
+
+    15=  You should now see the new session-handling rule listed
+         in the Session Handling Rules window, as follows:
+
+    16=  Return to the Repeater tab where you,
+         previously, were not logged in to the application.
+
+         Click the Go button to reveal that you are now logged in as Ed! This means your session-handling rule and associated macro worked:
+
+
+How it works...
+
+    In this recipe, we saw how an unauthenticated session can be changed to an authenticated one by replaying the login process.
+    The creation of macros allows manual steps to be scripted and assigned to various tools within the Burp suite.
+
+Burp allows testers to configure session-handling rules to address various conditions that the suite of tools may
+encounter.
+The rules provide additional actions to be taken when those conditions are met.
+In this recipe, we addressed an unauthenticated session by creating a new session-handling rule,
+which called a macro.
+We confined the scope for this rule to Repeater only for demonstration purposes.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Getting caught in the cookie jar
+
+
+While targeting an application,
+Burp captures all of the cookies it encounters while proxying and spidering HTTP traffic against(en contra) a target site.
+
+Burp stores these cookies in a cache called the cookie jar.
+
+This cookie jar is used within the default session-handling rule and can be shared among the suite of Burp tools,
+such as Proxy, Intruder, and Spider.
+Inside the cookie jar, there is a historical table of requests.
+
+The table details each cookie domain and path.
+It is possible to edit or remove cookies from the cookie jar.
+
+
+Getting ready
+
+    We will open the Burp Cookie Jar and look inside.
+    Then, using the OWASP GetBoo application,
+    we'll identify new cookies added to the Burp Cookie Jar.
+
+
+How to do it...
+
+    1=  Shut down and restart Burp so it is clean of any
+        history.
+        Switch to the Burp Project options tab, then the Sessions tab.
+        In the Cookie Jar section, click the Open cookie jar button, as follows:
+
+    2=  A new pop-up box appears.
+        Since we have no proxied traffic yet,
+        the cookie jar is empty.
+        Let's target an application and get some cookies captured, as follows:
+
+    3=  From the OWASP Landing page,
+        click the link to access the GetBoo application, as follows:
+
+    4=  Click the Login button.
+        At the login screen, type both the username and password as demo, and then click the Log In button.
+
+    5=  Return to the Burp Cookie Jar.
+        You now have three cookies available.
+        Each cookie has a Domain, Path, Name, and Value identified, as follows:
+
+    5=  Select the last cookie in the list and click the Edit
+        cookie button.
+        Modify the value from nada to thisIsMyCookie and then click OK, as follows:
+
+    6=  Select the last cookie in the list and click the Edit
+        cookie button.
+        Modify the value from nada to BorreMyCookie and then click OK, as follows:
+
+    7=  The value is now changed, as follows:
+
+    8=  The default scope for the Burp Cookie Jar is Proxy and
+        Spider.
+        However, you may expand the scope to include other tools.
+            Click the checkbox for Repeater, as follows:
+
+            Cookie: showhints=1;
+            PHPSESSID=BorreMyCookie;
+            </h1>=; pma_lang=en; phpMyAdmin=8257197000a69a1c520c3e94258d291a; username=ed;
+            uid=23
+
+solo funciona cuando envio X pagina a Repeater and Go, los
+valores  establecidos anteriormente solo se ejecutan durante el
+la herramienta Repeater
+
+
+Now, if you create a new session-handling rule and use the default Burp Cookie Jar,
+you will see the new value for that cookie used in the requests.
+
+How it works...
+
+    The Burp Cookie Jar is used by session-handling rules for cookie-handling when automating requests against a target application.
+    In this recipe, we looked into the Cookie Jar,
+    understood its contents, and even modified one
+     of the values of a captured cookie.
+     Any subsequent session-handling rules that use the default
+
+     Burp Cookie Jar will see the modified value in the request.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Adding great pentester plugins
+
+As web-application testers, you will find handy tools to add to your repertoire to make your assessments more efficient.
+
+The Burp community offers many wonderful extensions.
+
+In this recipe, we will add a couple of them and explain how they can make your assessments better.
+Retire.js and Software Vulnerability Scanner are the two plugins,
+these two plugins are used with the passive scanner.
+
+Note:
+    Both of these plugins require the Burp Professional version.
+
+
+Getting ready
+
+    Using the OWASP Mutilliae II application, we will add two handy extensions that will help us find more vulnerabilities in our target.
+
+
+How to do it...
+
+    1=  Switch to the Burp Extender tab.
+        Go to the BApp Store and find two
+        plugins—Retire.js and
+        Software Vulnerability Scanner.
+        Click the Install button for each plugin, as follows:
+
+    2=  After installing the two plugins,
+        go to the Extender tab, then Extensions, and then the Burp Extensions section.
+        Make sure both plugins are enabled with check marks inside the check boxes.
+        Also, notice the Software Vulnerability Scanner has a new tab, as follows:
+
+    3=  Return to the Firefox browser and browse to the
+        Mutillidae homepage.
+        Perform a lightweight,
+        less-invasive passive scan by right-clicking and
+        selecting Passively scan this branch, as follows:
+
+    4=  Note the additional findings created from the two
+        plugins.
+        The Vulners plugin, which is the Software Vulnerability Scanner, found numerous CVE issues,
+        and Retire.js identified five instances of a vulnerable version of jQuery, as follows:
+
+
+How it works...
+
+Burp functionality can be extended through a PortSwigger API to
+create custom extensions, also known as plugins.
+
+In this recipe, we installed two plugins that assist with identifying older versions of software contained in the
+application with known vulnerabilities.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Creating new issues via the Manual-Scan Issues Extension
+
+Though Burp provides a listing of many security vulnerabilities commonly found in web applications,
+occasionally you will identify an issue and need to create a custom scan finding.
+This can be done using the Manual-Scan Issues Extension.
+
+Note: This plugin requires the Burp Professional edition.
+
+
+Getting ready
+
+Using the OWASP Mutillidae II application, we will add the Manual Scan Issues Extension, create steps revealing a finding, then use the extension to create a custom issue.
+
+
+How to do it...
+
+    1=  Switch to the Burp Extender tab.
+        Go to the BApp Store and find the plugin labeled Manual Scan Issues.
+        Click the Install button:
+
+    2=  Return to the Firefox browser and browse to the
+        Mutillidae homepage.
+
+    3=  Switch to the Burp Proxy | HTTP history tab and find the
+        request you just made browsing to the homepage.
+        Click the Response tab.
+        Note the overly verbose Server header indicating the web server type and version along with the operating system
+        and programming language used.
+        This information can be used by an attacker to fingerprint the technology stack and identify vulnerabilities that can be exploited:
+
+        Server: Apache/2.4.39 (Unix) OpenSSL/1.0.2s PHP/7.3.7 mod_perl/2.0.8-dev Perl/v5.16.3
+
+    4=  Since this is a finding,
+        we need to create a new issue manually to capture it for our report.
+        While viewing the Request,
+            right-click and select Add Issue, as follows:
+
+    5=  A pop-up dialog box appears.
+        Within the General tab,
+        we can create a new issue name of Information Leakage in Server Response.
+        Obviously, you may add more verbiage around the issue detail, background, and remediation areas, as follows:
+
+    6=  If we flip to(pasar a) the HTTP Request tab,
+        we can copy and paste into the text area the contents of the Request tab found within the message editor, as follows:
+                    esto es lo que pege en el text area
+
+            GET /mutillidae/index.php?page=home.php&popUpNotificationCode=HPH0 HTTP/1.1
+            Host: edwin.home
+            User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0
+            Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+            Accept-Language: en-US,en;q=0.5
+            Accept-Encoding: gzip, deflate
+            Connection: close
+            Referer: http://edwin.home/mutillidae/index.php?page=login.php&popUpNotificationCode=LOU1
+            Cookie: showhints=1; PHPSESSID=1ace16a57760811199a1d529686311e1
+            Upgrade-Insecure-Requests: 1
+
+    7=  If we flip to(pasar a) the HTTP Response tab,
+        we can copy and paste into the text area the contents of the Response tab found within the message editor.
+
+    8=  Once completed, flip back to(volver a) the General tab
+        and click the Import Findingbutton.
+        You should see the newly-created scan issue added to the Issues window, as follows:
+
+
+
+How it works...
+
+    In cases where an issue is not available within the Burp core issue list,
+    a tester can create their own issue using the Manual-Scan Issue Extension.
+    In this recipe, we created an issue for
+        Information Leakage in Server Responses.
+
+
+See also
+
+    For a listing of all issue definitions identified by Burp, go to https://portswigger.net/kb/issues.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Working with the Active Scan++ Extension
+
+Some extensions assist in finding vulnerabilities with specific payloads, such as XML, or help to find hidden issues,
+such as cache poisoning and DNS rebinding.(rebobinado)
+
+In this recipe, we will add an active scanner extension called Active Scan++,
+which assists with identifying these more specialized vulnerabilities.
+
+
+Note: This plugin requires the Burp Professional edition.
+
+
+Getting ready
+
+    Using the OWASP Mutillidae II application, we will add the Active Scan++ extension,
+    and then run an active scan against the target.
+
+
+How to do it...
+
+    1=  Switch to the Burp Extender | BApp Store and select the
+        Active Scan++ extension.
+        Click the Install button to install the extension, as follows:
+
+    2=  Return to the Firefox browser and browse to the
+        Mutillidae homepage.
+
+    3=  Switch to the Burp Target tab,
+        then the Site map tab,
+        right-click on the mutillidae folder,
+        and select Actively scan this branch, as follows:
+
+    
