@@ -1,0 +1,256 @@
+Chapter 11. Implementing Advanced Topic Attacks
+
+In this chapter, we will cover the following recipes:
+
+    Performing XML External Entity (XXE) attacks
+    Working with JSON Web Token (JWT)
+    Using Burp Collaborator to determine Server-Side Request Forgery (SSRF)
+    Testing Cross-Origin Resource Sharing (CORS)
+    Performing Java deserialization attacks
+
+
+Introduction
+
+    This chapter covers intermediate to advanced topics such as working with JWT, XXE, and Java deserialization attacks,
+    and how to use Burp to assist with such assessments.
+    With some advanced attacks, Burp plugins provide tremendous help in easing the task required by the tester.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Performing XXE attacks
+
+XXE is a vulnerability that targets applications parsing XML.
+
+Attackers can manipulate the XML input with arbitrary commands and send those commands as external entity references within the
+XML structure.
+The XML is then executed by a weakly-configured parser, giving the attacker the requested resource.
+
+
+Getting ready
+
+    Using the OWASP Mutillidae II XML validator page, determine whether the application is susceptible to XXE attacks.
+
+
+How to do it...
+
+    1=  Navigate to the XML External Entity Injection page,
+        that is, through Others | XML External Entity Injection | XML Validator:
+
+    2=  While on the XML Validator page,
+        perform the example XML that is provided on the page.
+            Click on the Validate XML button:
+
+    3=  Switch to Burp Proxy| HTTP history tab and look for the
+        request you just submitted to validate the XML.
+            Right-click and send the request to the repeater:
+
+    4=  Note the value provided in the xml parameter:
+
+    5=  Use Burp Proxy Interceptor to replace this XML parameter
+        value with the following payload.
+        This new payload will make a request to a file on the operating system that should be restricted from view,
+        namely,
+            the /etc/passwd file:
+
+                    <?xml version="1.0"?>
+            <!DOCTYPE change-log[
+                <!ENTITY systemEntity SYSTEM "../../../../etc/passwd">
+            ]>
+            <change-log>
+                <text>&systemEntity;</text>
+            </change-log>
+
+Since there are odd characters and spaces in the new XML message,
+let's type this payload into the Decoder section and URL-encode it before we paste it into the xml parameter.
+
+    %3c%3f%78%6d%6c%20%76%65%72%73%69%6f%6e%3d%22%31%2e%30%22%3f%3e%0a%20%20%20%20%3c%21%44%4f%43%54%59%50%45%20%63%68%61%6e%67%65%2d%6c%6f%67%5b%0a%20%20%20%20%20%20%20%20%3c%21%45%4e%54%49%54%59%20%73%79%73%74%65%6d%45%6e%74%69%74%79%20%53%59%53%54%45%4d%20%22%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%65%74%63%2f%70%61%73%73%77%64%22%3e%0a%20%20%20%20%5d%3e%0a%20%20%20%20%3c%63%68%61%6e%67%65%2d%6c%6f%67%3e%0a%20%20%20%20%20%20%20%20%3c%74%65%78%74%3e%26%73%79%73%74%65%6d%45%6e%74%69%74%79%3b%3c%2f%74%65%78%74%3e%0a%20%20%20%20%3c%2f%63%68%61%6e%67%65%2d%6c%6f%67%3e
+
+    6=  Switch to the Decoder section, type or paste the new
+        payload into the text area.
+        Click the Encode as… button and select the URL option from the drop-down listing.
+        Then, copy the URL-encoded payload using Ctrl + C.
+        Make sure you copy all of the payload by scrolling to the right:
+
+    7=  Switch to the Burp Proxy Intercept tab.
+        Turn the interceptor on with the Intercept is on button.
+
+    8=  Return to the Firefox browser and reload the page.
+        As the request is paused, replace the current value of the xml parameter with the new URL-encoded payload:
+
+    9=  Click the Forward button.
+        Turn interceptor off by toggling the button to Intercept is off.
+
+    10=  Note that the returned XML now shows the contents of
+         the /etc/passwd file!
+         The XML parser granted us access to the /etc/passwd file on the operating system:
+
+How it works...
+
+    In this recipe, the insecure XML parser receives the request within the XML for the /etc/passwd file residing on the server.
+    Since there is no validation performed on the XML request due to a weakly-configured parser,
+    the resource is freely provided to the attacker.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Working with JWT
+
+As more sites provide client API access,
+JWT are commonly used for authentication.
+These tokens hold identity and claims information tied to the resources the user is granted access to on the target site.
+
+Web-penetration testers need to read these tokens and determine their strength.
+Fortunately, there are some handy plugins that make working with JWT tokens inside of Burp much easier.
+    We will learn about these plugins in this recipe.
+
+
+Getting ready
+
+    In this recipe, we need to generate JWT tokens.
+    Therefore(por lo tanto), we will use the OneLogin software to assist with this task.
+    In order to complete this recipe, browse to the OneLogin website: https://www.onelogin.com/.
+    Click the Developers link at the top and then click the GET A DEVELOPER ACCOUNT link (https://www.onelogin.com/developer-signup).
+
+    After you sign up, you will be asked to verify your account and create a password. Please perform these account setup tasks prior to starting this recipe.
+
+    Using the OneLogin SSO account, we will use two Burp extensions to examine the JWT tokens assigned as authentication by the site.
+
+
+How to do it...
+
+    1=  Switch to Burp BApp Store and install two plugins
+        JSON Beautifier and
+        JSON Web Tokens:
+
+    2=  In the Firefox browser, go to your OneLogin page.
+        The URL will be specific to the developer account you created.
+        Log in to the account using the credentials you established when you set up the account before beginning this recipe:
+
+    3=  Switch to the Burp Proxy | HTTP history tab.
+        Find the POST request with the URL /access/auth.
+            Right-click and click the Send to Repeater option.
+
+    4=  Your host value will be specific to the
+        OneLogin account you set up:
+
+    5=  Switch to the Repeater tab and notice that you have
+        two additional tabs relating to the two extensions you installed:
+
+    6=  Click the JSON Beautifier tab to view the
+        JSON structure in a more readable manner:
+
+    7=  Click the JSON Web Tokens tab to reveal a
+        debugger very similar to the one available at
+        https://jwt.io.
+        This plugin allows you to read the claims content and manipulate the encryption algorithm for various brute-force tests.
+            For example, in the following screenshot,
+            notice how you can change the algorithm to nOnE in order to attempt to create a new JWT token to place into the request:
+
+
+How it works...
+
+    Two extensions, JSON Beautifier and JSON Web Tokens,
+    help testers to work with JWT tokens in an easier way by
+    providing debugger tools conveniently available with the Burp UI.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using Burp Collaborator to determine SSRF
+
+SSRF is a vulnerability that allows an attacker to force applications to make unauthorized requests on the attacker's behalf(nombre del atacante).
+
+These requests can be as simple as DNS queries or as maniacal as commands from an attacker-controlled server.
+
+In this recipe, we will use Burp Collaborator to check open ports available for SSRF requests,
+and then use Intruder to determine whether  the application will perform DNS queries to the public Burp Collaborator server through an SSRF vulnerability.
+
+
+Getting ready
+
+    Using the OWASP Mutillidae II DNS lookup page, let's determine whether the application has an SSRF vulnerability.
+
+
+How to do it...
+
+    1=  Switch to the Burp Project options | Misc tab.
+        Note the Burp Collaborator Server section.
+        You have options available for using a private Burp Collaborator server, which you would set up,
+        or you may use the publicly internet-accessible one made available by PortSwigger.
+            For this recipe, we will use the public one:
+
+    2=  Check the box labeled Poll over unencrypted HTTP and
+        click the
+            Run health check… button:
+
+    3=  A pop-up box appears to test various protocols to see
+        whether they will connect to the public
+        Burp Collaborator server available on the internet.
+
+    4=  Check the messages for each protocol to see which are
+        successful.
+        Click the Close button when you are done:
+
+    5=  From the top-level menu,
+        select Burp |
+            Burp Collaborator client:
+
+    6=  A pop-up box appears.
+        In the section labeled Generate Collaborator payloads, change the 1 to 10:
+
+    7=  Click the Copy to clipboard button.
+        Leave all other defaults as they are.
+        Do not close the Collaborator client window.
+            If you close the  window,
+                you will lose the client session:
+
+    8=  On the DNS Lookup page,
+        type an IP address and click the Lookup DNS button:
+
+    9=  On the DNS Lookup page,
+        type an IP address and click the Lookup DNS button:
+
+    10=  Switch to the Burp Proxy | HTTP history tab
+         and find the request you just created on the DNS Lookup page.
+            Right-click and select the Send to Intruder option:
+
+    11=  Switch to the Burp Intruder | Positions tab.
+         Clear all suggested payload markers and highlight the IP address,
+         click the Add § button to place payload markers around the IP address value of the target_host parameter:
+
+    12=  Switch to the Burp Intruder | Payloads tab
+         and paste the 10 payloads you copied to the clipboard from the Burp Collaborator client
+         into the Payload Options [Simple list] textbox using the Paste button:
+
+Make sure you uncheck the Payload Encoding checkbox.
+
+    13=  Click the Start attack button.
+         The attack results table will pop up as your payloads are processing.
+         Allow the attacks to complete.
+         Note the burpcollaborator.net URL is placed in the payload marker position of the target_host parameter:
+
+    14=  Return to the Burp Collaborator client and click the
+         Poll now button to see whether any SSRF attacks were successful over any of the protocols.
+
+         If any requests leaked outside of the network, those requests will appear in this table along with the specific protocol used.
+         If any requests are shown in this table, you will need to report the SSRF vulnerability as a finding.
+         As you can see from the results shown here, numerous DNS queries were made by the application on behalf of the attacker-provided payloads:
+
+
+How it works...
+
+    Network leaks and overly-generous application parameters can
+    allow an attacker to have an application make unauthorized calls via various protocols on the attacker's behalf.
+    In the case of this recipe, the application allows DNS queries to leak outside of the local machine and connect to the internet.
+
+
+    See also
+
+        For more information on SSRF attacks, see this PortSwigger blog entry at
+        https://portswigger.net/blog/cracking-the-lens-targeting-https-hidden-attack-surface.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
