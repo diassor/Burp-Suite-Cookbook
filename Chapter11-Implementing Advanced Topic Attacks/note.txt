@@ -254,3 +254,190 @@ How it works...
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Testing CORS  (Cross Origin Resource Sharing)
+
+An application that implements HTML5 CORS means the application
+will share browser information with another domain that resides at a different origin.
+By design, browser protections prevent external scripts from accessing information in the browser.
+
+This protection is known as Same-Origin Policy (SOP).
+However, CORS is a means of bypassing SOP, permissively.
+
+If an application wants to share browser information with a completely different domain,
+it may do so with properly-configured CORS headers.
+
+Web-penetration testers must ensure applications that handle AJAX calls (for example, HTML5) do not have misconfigured CORS headers.
+Let's see how Burp can help us identify such misconfigurations.
+
+
+Getting ready
+
+    Using the OWASP Mutillidae II AJAX version of the Pen Test Tool Lookup page,
+    determine whether the application contains misconfigured CORS headers.
+
+
+How to do it...
+
+    1=  Navigate to HTML5 | Asynchronous JavaScript
+        and XML | Pen Test Tool Lookup (AJAX):
+
+    2=  Select a tool from the listing and click the
+        Lookup Tool button:
+            inside choose XSS me line
+
+    3=  Switch to the Burp Proxy | HTTP history tab
+        and find the request you just made from the
+        AJAX Version Pen Test Tool Lookup page.
+            Flip to(pasa a) the Response tab:
+
+    4=  Let's examine the headers more closely by selecting the
+        Headers tab of the same Response tab.
+        Though this is an AJAX request,
+        the call is local to the application instead of being made to a cross-origin domain.
+        Thus, no CORS headers are present since it is not required.
+        However, if a call to an external domain were made
+            (for example, Google APIs),
+                then CORS headers would be required:
+
+    5=  In an AJAX request, there is a call out to an external
+        URL (for example, a cross-domain).
+        In order to permit the external domain to receive DOM information from the user's browser session,
+        CORS headers must be present, including
+            Access-Control-Allow-Origin:
+                <name of cross domain>.
+
+    6=  In the event the CORS header does not specify the name
+        of the external domain and, instead,
+        uses a wild card (*), this is a vulnerability.
+        Web pentesters should include this in their report as a misconfigured CORS headers vulnerability.
+
+
+
+How it works...
+
+    Since the AJAX call used in this recipe originated from the same place, there is no need for CORS headers.
+    However, in many cases, AJAX calls are made to external domains and require explicit permission through the HTTP response
+        Access-Control-Allow-Origin header.
+
+See also
+
+    For more information on misconfigured CORS headers, see this PortSwigger blog entry at
+    https://portswigger.net/blog/exploiting-cors-misconfigurations-for-bitcoins-and-bounties.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Performing Java deserialization attacks
+
+Serialization is a mechanism provided in various languages that allows the saving of an object's state in binary format.
+
+It is used for speed and obfuscation.
+
+The turning of an object back from binary into an object is deserialization.
+
+In cases where user input is used within an object and that object is later serialized,
+it creates an attack vector for arbitrary
+        code-injection and possible
+        remote code-execution.
+
+We will look at a Burp extension that will assist web-penetration testers in assessing applications for Java Deserialization vulnerabilities.
+
+
+Getting Ready
+
+    Using OWASP Mutillidae II and a hand-crafted serialized code snippet,
+    we will demonstrate how to use the Java Serial Killer Burp extension to assist in performing Java deserialization attacks.
+
+
+How to do it...
+
+    1=  Switch to Burp BApp Store and install the
+            Java Serial Killer plugin:
+
+In order to create a scenario using a serialized object,
+we will take a standard request and add a serialized object to it for the purposes of demonstrating
+how you can use the extension to add
+    attacker-controlled commands to serialized objects.
+
+    2=  Note the new tab added to your Burp UI menu at the top
+        dedicated to the
+            newly-installed plugin.
+
+    3=  Navigate to the Mutillidae homepage.
+
+    4=  Switch to the Burp Proxy| HTTP history tab
+        and look for the request you just created by browsing to the Mutillidae homepage:
+            send to java Serial Killer
+
+Unfortunately, there aren't any serialized objects in Mutillidae so we will have to create one ourselves.
+
+    5=  Switch to the Decoder tab and copy the following snippet
+        of a serialized object:
+            AC ED 00 05 73 72 00 0A 53 65 72 69 61 6C 54 65
+
+        encode base64
+(QUMgRUQgMDAgMDUgNzMgNzIgMDAgMEEgNTMgNjUgNzIgNjkgNjEgNkMgNTQgNjU=)
+
+    6=  Paste the hexadecimal numbers into the Decoder tab,
+        click the Encode as... button, and
+                select base 64:
+
+    7=  Copy the base-64 encoded value from the Decoder tab and
+        paste it into the bottom of the request you sent to the Java Serial Killer tab.
+            Use Ctrl + C to copy out of Decoder and Ctrl + V to paste it anywhere in the white space area of the request:
+    encode base64
+        QUMgRUQgMDAgMDUgNzMgNzIgMDAgMEEgNTMgNjUgNzIgNjkgNjEgNkMgNTQgNjU=
+
+
+    8=  Within the Java Serial Killer tab,
+        pick a Java library from the drop-down list.
+
+        For this recipe,
+        we will use CommonsCollections1.
+        Check the Base64 Encode box.
+        Add a command to embed into the serialized object.
+        In this example, we will use the nslookup 127.0.0.1 command.
+        Highlight the payload and click the Serialize button:
+
+    9=  After clicking the Serialize button,
+        notice the payload has changed and now contains your arbitrary command and is
+            base-64 encoded:
+
+    10=  Click the Go button within the Java Serial Killer tab
+         to execute the payload.
+         Even though you may receive an error in the response, ideally, you would have a listener,
+         such as tcpdump,
+         listening for any DNS lookups on port 53.
+         From the listener, you would see the DNS query to the IP address you specified in the nslookup command.
+
+
+
+How it works...
+
+    In cases where application code receives user input directly into an object without performing sanitization
+    on such input,
+    an attacker has the opportunity to provide arbitrary commands.
+    The input is then serialized and run on the operating system where the application resides,
+    creating a possible attack vector for remote code execution.
+
+
+There's more...
+
+    Since this recipe scenario is a bit contrived, you may not receive a response on your network
+        listener for the nslookup command.
+    Try the recipe again after downloading a vulnerable version of an application with known Java deserialization vulnerabilities
+    (that is, Jenkins, JBoss).
+        Reuse the same steps shown here, only change the target application.
+
+
+
+See also
+
+    For more information about real-world Java deserialization attacks, check out these links:
+
+        Symantec: https://www.symantec.com/security_response/attacksignatures/detail.jsp?asid=30326
+
+
+        Foxglove Security: https://foxglovesecurity.com/2015/11/06/what-do-weblogic-websphere-jboss-jenkins-opennms-and-your-application-have-in-common-this-vulnerability/
+
+        To read more about this Burp plugin, check out https://blog.netspi.com/java-deserialization-attacks-burp/
